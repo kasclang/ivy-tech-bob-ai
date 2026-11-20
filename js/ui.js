@@ -1,275 +1,251 @@
-// ui.js v2 — dashboard, Google-Calendar week view, streaks, deadlines, recommendations
-// Depends on: config.js, data.js, analysis.js, persistence.js
+// ui.js v3 — Google/Apple-style dashboard UI with tutor names, pills instead of prose
 (function () {
   'use strict';
 
-  /* ─── tiny helpers ─────────────────────────────────────────── */
+  /* ── helpers ── */
   function el(tag, cls, html) {
     const e = document.createElement(tag);
     if (cls)  e.className = cls;
     if (html !== undefined) e.innerHTML = html;
     return e;
   }
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-  const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-
-  function daysUntil(dateStr) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const due   = new Date(dateStr); due.setHours(0,0,0,0);
-    return Math.round((due - today) / 86400000);
+  function daysUntil(d) {
+    const t = new Date(); t.setHours(0,0,0,0);
+    const x = new Date(d); x.setHours(0,0,0,0);
+    return Math.round((x - t) / 86400000);
   }
-
-  function dueBadge(dateStr) {
+  function urgencyPill(dateStr) {
     const d = daysUntil(dateStr);
-    if (d < 0)  return { cls: 'deadline-due--urgent', label: 'Overdue' };
-    if (d === 0) return { cls: 'deadline-due--urgent', label: 'Due TODAY' };
-    if (d <= 3)  return { cls: 'deadline-due--urgent', label: `Due in ${d}d` };
-    if (d <= 7)  return { cls: 'deadline-due--soon',   label: `Due in ${d}d` };
-    return               { cls: 'deadline-due--ok',    label: dateStr };
+    if (d < 0)   return { cls:'pill--red',   label:'Overdue' };
+    if (d === 0) return { cls:'pill--red',   label:'Due today' };
+    if (d <= 3)  return { cls:'pill--red',   label:`${d}d left` };
+    if (d <= 7)  return { cls:'pill--amber', label:`${d}d left` };
+    return               { cls:'pill--green',label: dateStr };
+  }
+  function scoreFill(s) {
+    if (s >= window.CONFIG.strongThreshold) return 'score-fill--green';
+    if (s >= window.CONFIG.weakThreshold)   return 'score-fill--amber';
+    return 'score-fill--red';
   }
 
-  /* ─── SIDEBAR: student nav buttons ─────────────────────────── */
+  /* ══ TOP BAR ══════════════════════════════════════════ */
+  function renderTopBar() {
+    const e = document.getElementById('today-date');
+    if (!e) return;
+    e.textContent = new Date().toLocaleDateString('en-US',
+      { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+  }
+
+  /* ══ SIDEBAR — students ═══════════════════════════════ */
   function renderStudentNav(students, selectedId, onSelect) {
     const wrap = document.getElementById('student-nav');
     if (!wrap) return;
     wrap.innerHTML = '';
     students.forEach(s => {
+      const mod = s.modality.toLowerCase();
+      const avClass = mod === 'hybrid' ? 'snb-av snb-av--hybrid'
+                    : mod === 'online' ? 'snb-av snb-av--online'
+                    : 'snb-av';
       const btn = el('button', 'student-nav-btn' + (s.student_id === selectedId ? ' active' : ''));
       btn.innerHTML = `
-        <span class="snb-avatar">${s.first_name[0]}</span>
-        <span class="snb-info">
-          <span class="snb-name">${s.first_name}</span>
-          <span class="snb-prog">${s.program.replace(/ \(.*\)/, '')}</span>
+        <span class="${avClass}">${s.first_name[0]}</span>
+        <span>
+          <div class="snb-txt-name">${s.first_name}</div>
+          <div class="snb-txt-prog">${s.program.replace(/ \(.*\)/, '')}</div>
         </span>`;
       btn.addEventListener('click', () => onSelect(s.student_id));
       wrap.appendChild(btn);
     });
   }
 
-  /* ─── SIDEBAR: week nav ─────────────────────────────────────── */
-  function renderWeekNav(currentWeek, onSelect) {
+  /* ══ SIDEBAR — weeks ══════════════════════════════════ */
+  function renderWeekNav(current, onSelect) {
     const wrap = document.getElementById('week-nav');
     if (!wrap) return;
     wrap.innerHTML = '';
     for (let w = 1; w <= 12; w++) {
-      const btn = el('button', 'week-nav-btn' + (w === currentWeek ? ' active' : ''), 'Wk ' + w);
-      btn.addEventListener('click', () => onSelect(w));
-      wrap.appendChild(btn);
+      const p = el('button', 'week-pill' + (w === current ? ' active' : ''), 'W' + w);
+      p.addEventListener('click', () => onSelect(w));
+      wrap.appendChild(p);
     }
   }
 
-  /* ─── TOP BAR: today date ───────────────────────────────────── */
-  function renderTopBar() {
-    const el2 = document.getElementById('today-date');
-    if (!el2) return;
-    const now = new Date();
-    el2.textContent = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-  }
-
-  /* ─── STAT CARDS ────────────────────────────────────────────── */
-  function renderStats(student, rankedTopics, week) {
+  /* ══ STAT TILES ═══════════════════════════════════════ */
+  function renderStats(student, ranked, week) {
     const P      = window.Persistence;
     const streak = P.checkInStreak(student.student_id);
     const xp     = P.getXP(student.student_id);
     const lvl    = P.xpLevel(xp);
     const cal    = window.AppData.assignmentCalendar;
+    const nxt    = cal.filter(a => daysUntil(a.due_date) >= 0)
+                      .sort((a,b) => new Date(a.due_date)-new Date(b.due_date))[0];
+    const nxtD   = nxt ? daysUntil(nxt.due_date) : null;
+    const avg    = ranked.length
+      ? Math.round(ranked.reduce((s,t)=>s+t.score_percent,0)/ranked.length) : 0;
 
-    // next deadline
-    const upcoming = cal.filter(a => daysUntil(a.due_date) >= 0)
-                        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
-    const next = upcoming[0];
-    const nextDays = next ? daysUntil(next.due_date) : null;
-
-    // average score
-    const avgScore = rankedTopics.length
-      ? Math.round(rankedTopics.reduce((s, t) => s + t.score_percent, 0) / rankedTopics.length)
-      : 0;
-
-    const wrap = document.getElementById('stat-cards');
+    const wrap = document.getElementById('stat-row');
     if (!wrap) return;
     wrap.innerHTML = `
-      <div class="stat-card stat-card--streak">
-        <div class="stat-label">Study Streak</div>
-        <div class="stat-value"><span class="flame">🔥</span> ${streak}</div>
-        <div class="stat-sub">${streak === 1 ? 'day — keep going!' : streak > 1 ? 'days in a row!' : 'Start today!'}</div>
+      <div class="stat-tile stat-tile--streak">
+        <div class="stat-tile-icon stat-tile-icon--streak">🔥</div>
+        <div class="stat-tile-lbl">Streak</div>
+        <div class="stat-tile-val"><span class="flame">${streak}</span></div>
+        <div class="stat-tile-sub">${streak === 1 ? 'day — keep it up!' : streak > 1 ? 'days in a row' : 'Start today!'}</div>
       </div>
-      <div class="stat-card stat-card--xp">
-        <div class="stat-label">XP · ${lvl.title}</div>
-        <div class="stat-value">${xp}</div>
-        <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${lvl.next ? Math.round((xp / lvl.next)*100) : 100}%"></div></div>
-        <div class="stat-sub">${lvl.next ? `${lvl.next - xp} XP to next level` : 'Max level!'}</div>
+      <div class="stat-tile stat-tile--xp">
+        <div class="stat-tile-icon stat-tile-icon--xp">⚡</div>
+        <div class="stat-tile-lbl">XP · ${lvl.title}</div>
+        <div class="stat-tile-val">${xp}</div>
+        <div class="xp-mini-bar"><div class="xp-mini-fill" style="width:${lvl.next?Math.min(100,Math.round(xp/lvl.next*100)):100}%"></div></div>
+        <div class="stat-tile-sub">${lvl.next ? lvl.next-xp+' XP to level up' : 'Max level!'}</div>
       </div>
-      <div class="stat-card stat-card--score">
-        <div class="stat-label">Avg Diagnostic</div>
-        <div class="stat-value">${avgScore}%</div>
-        <div class="stat-sub">${avgScore >= 75 ? 'Looking strong' : avgScore >= 60 ? 'Room to grow' : 'Needs focus'}</div>
+      <div class="stat-tile stat-tile--score">
+        <div class="stat-tile-icon stat-tile-icon--score">📈</div>
+        <div class="stat-tile-lbl">Avg Score</div>
+        <div class="stat-tile-val">${avg}%</div>
+        <div class="stat-tile-sub">${avg>=75?'Looking strong':avg>=60?'Room to grow':'Needs work'}</div>
       </div>
-      <div class="stat-card stat-card--deadline">
-        <div class="stat-label">Next Deadline</div>
-        <div class="stat-value">${nextDays === null ? '—' : nextDays === 0 ? 'TODAY' : nextDays + 'd'}</div>
-        <div class="stat-sub">${next ? next.item : 'All clear'}</div>
+      <div class="stat-tile stat-tile--dead">
+        <div class="stat-tile-icon stat-tile-icon--dead">⏰</div>
+        <div class="stat-tile-lbl">Next Due</div>
+        <div class="stat-tile-val">${nxtD===null?'—':nxtD===0?'Today':nxtD+'d'}</div>
+        <div class="stat-tile-sub">${nxt?nxt.item:'All clear'}</div>
       </div>`;
   }
 
-  /* ─── TODAY RECOMMENDATION ──────────────────────────────────── */
-  function renderTodayRec(student, rankedTopics, sessions) {
-    const wrap = document.getElementById('today-rec');
+  /* ══ TODAY CARD ═══════════════════════════════════════ */
+  function renderTodayCard(student, ranked, sessions) {
+    const wrap = document.getElementById('today-card');
     if (!wrap) return;
+    const todayName = new Date().toLocaleDateString('en-US',{weekday:'long'});
+    const todaySess = sessions.filter(s=>s.day===todayName);
+    const topTopic  = ranked[0];
+    const cal       = window.AppData.assignmentCalendar;
+    const urgent    = cal.filter(a=>daysUntil(a.due_date)>=0&&daysUntil(a.due_date)<=7)
+                        .sort((a,b)=>new Date(a.due_date)-new Date(b.due_date))[0];
 
-    const today   = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const todaySessions = sessions.filter(s => s.day === today);
-    const topTopic = rankedTopics[0];
-    const cal      = window.AppData.assignmentCalendar;
-
-    // find the most urgent upcoming item
-    const urgent = cal.filter(a => daysUntil(a.due_date) >= 0 && daysUntil(a.due_date) <= 7)
-                      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
-
-    const workH = student.work_hours_per_week || 0;
-    const workNote = workH >= 30 ? `You work ${workH} hrs/week — your plan is intentionally short.` : null;
-
-    let action, why;
-    if (todaySessions.length > 0) {
-      action = `Today is ${today} — you have ${todaySessions.length} study session${todaySessions.length > 1 ? 's' : ''} scheduled.`;
-      why    = `Focus on <strong>${todaySessions[0].topic}</strong> during your ${todaySessions[0].start}–${todaySessions[0].end} window.`;
+    let heading, sub;
+    if (todaySess.length) {
+      heading = `${todayName} — ${todaySess.length} session${todaySess.length>1?'s':''} scheduled`;
+      sub     = `Study <strong>${todaySess[0].topic}</strong> · ${todaySess[0].start}–${todaySess[0].end}`;
     } else if (topTopic) {
-      action = `No sessions today — but <strong>${topTopic.topic}</strong> is your weakest area (${topTopic.score_percent}%).`;
-      why    = `Consider 20 minutes of online practice — it fits any free moment.`;
+      heading = `No sessions today — focus on <strong>${topTopic.topic}</strong>`;
+      sub     = `Your score is ${topTopic.score_percent}% — 20 min of practice moves the needle.`;
     } else {
-      action = 'Set up your availability to get a personalised plan.';
-      why    = '';
+      heading = 'Set your availability to get a personalised plan';
+      sub     = '';
     }
 
-    const chips = [];
-    if (urgent) chips.push({ text: `⚠️ ${urgent.item} due in ${daysUntil(urgent.due_date)}d`, urgent: true });
-    if (topTopic && topTopic.score_percent < 65) chips.push({ text: `📉 Weakest: ${topTopic.topic}`, urgent: false });
-    if (workNote) chips.push({ text: `💼 ${workNote}`, urgent: false });
+    const pills = [];
+    if (urgent) pills.push({ txt:`⚠️ ${urgent.item} — ${daysUntil(urgent.due_date)}d`, red:true });
+    if (topTopic && topTopic.score_percent < 65) pills.push({ txt:`📉 Weakest: ${topTopic.topic}`, red:false });
+    if (student.work_hours_per_week >= 30) pills.push({ txt:`💼 ${student.work_hours_per_week} hrs/wk — plan capped`, red:false });
 
     wrap.innerHTML = `
-      <div class="today-rec-label">👋 Your focus for today</div>
-      <div class="today-rec-action">${action}</div>
-      <div class="today-rec-why">${why}</div>
-      <div class="today-rec-chips">
-        ${chips.map(c => `<span class="rec-chip${c.urgent ? ' rec-chip--urgent' : ''}">${c.text}</span>`).join('')}
+      <div class="today-eyebrow">👋 Today's focus · ${student.first_name}</div>
+      <div class="today-heading">${heading}</div>
+      ${sub ? `<div class="today-sub">${sub}</div>` : ''}
+      <div class="today-pills">
+        ${pills.map(p=>`<span class="today-pill${p.red?' today-pill--red':''}">${p.txt}</span>`).join('')}
       </div>`;
   }
 
-  /* ─── MOTIVATIONAL BANNER ───────────────────────────────────── */
-  function renderMotivation(student, streak) {
+  /* ══ MOTIVE BANNER ════════════════════════════════════ */
+  function renderMotive(student, streak) {
     const wrap = document.getElementById('motive-banner');
     if (!wrap) return;
     const msgs = [
       `💪 You've got this, ${student.first_name}! Every session brings you closer to passing.`,
-      `🎯 Small steps every day beat cramming the night before — keep showing up!`,
-      `🏆 Your ${student.program} future starts with today's practice.`,
-      `📈 Even 25 minutes of focused study moves the needle. You can do this!`,
-      `✨ The students who succeed are the ones who ask for help early — that's you!`
+      `🎯 Small steps beat cramming. Keep showing up!`,
+      `🏆 Your ${student.program.replace(/ \(.*\)/,'')} future starts with today's practice.`,
+      `✨ The students who succeed ask for help early — that's you.`
     ];
-    const msg = streak > 3
-      ? `🔥 ${streak}-day streak! You're building real momentum, ${student.first_name}!`
-      : msgs[Math.floor(Math.random() * msgs.length)];
-    wrap.textContent = msg;
+    wrap.textContent = streak > 3
+      ? `🔥 ${streak}-day streak! Keep the momentum, ${student.first_name}!`
+      : msgs[new Date().getDay() % msgs.length];
   }
 
-  /* ─── GOOGLE-STYLE WEEKLY CALENDAR ─────────────────────────── */
+  /* ══ CALENDAR ════════════════════════════════════════ */
   function renderCalendar(student, sessions, week) {
     const wrap = document.getElementById('cal-wrap');
     if (!wrap) return;
-
-    const section = student.section || 'OL1';
+    const section    = student.section || 'OL1';
     const classTimes = window.AppData.scheduleBySection[section] || [];
-    const cal = window.AppData.assignmentCalendar;
-    const toM = window.timeToMin;
+    const cal        = window.AppData.assignmentCalendar;
+    const toM        = window.timeToMin;
+    const SH = 8, EH = 21;   // 8am–9pm
+    const PH = 44;            // px per hour (matches .cal-time-label height)
 
-    // hours shown: 8am–10pm
-    const START_HOUR = 8, END_HOUR = 22;
-    const TOTAL_H    = END_HOUR - START_HOUR;
-    const PX_PER_H   = 48; // must match .cal-time-slot height
-
-    // header
-    const hdr = el('div', 'cal-header');
-    hdr.innerHTML = '<div class="cal-time-col"></div>';
-    DAY_ORDER.forEach(day => {
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-      const isToday = day === today;
-      // compute date for this week day
-      const semStart = new Date('2027-01-11'); // Monday week 1
-      const weekOffset = (week - 1) * 7;
-      const dayIdx = DAY_ORDER.indexOf(day);
-      const d = new Date(semStart);
-      d.setDate(semStart.getDate() + weekOffset + dayIdx);
-      const dateNum = d.getDate();
-
-      hdr.innerHTML += `<div class="cal-day-label${isToday ? ' today' : ''}">
-        ${day.slice(0,3)}<span class="cal-day-num">${dateNum}</span>
+    /* header */
+    const hdr = el('div','cal-header');
+    hdr.innerHTML = '<div></div>'; // time gutter placeholder
+    const semMon = new Date('2027-01-11');
+    DAYS.forEach((day, di) => {
+      const todayName = new Date().toLocaleDateString('en-US',{weekday:'long'});
+      const d = new Date(semMon);
+      d.setDate(semMon.getDate() + (week-1)*7 + di);
+      const isToday = day === todayName;
+      hdr.innerHTML += `<div class="cal-day-col-hd${isToday?' today-col':''}">
+        ${day.slice(0,3)}<span class="cal-day-num">${d.getDate()}</span>
       </div>`;
     });
 
-    // grid
-    const grid = el('div', 'cal-grid');
+    /* grid */
+    const grid = el('div','cal-grid');
 
-    // time column
-    const timeCol = el('div', 'cal-time-col');
-    for (let h = START_HOUR; h < END_HOUR; h++) {
-      const slot = el('div', 'cal-time-slot', h === 12 ? '12 PM' : h < 12 ? h + ' AM' : (h - 12) + ' PM');
-      timeCol.appendChild(slot);
+    /* time column */
+    const timeCol = el('div','cal-time-col-body');
+    for (let h = SH; h < EH; h++) {
+      const lbl = h === 12 ? '12 PM' : h < 12 ? h+' AM' : (h-12)+' PM';
+      timeCol.appendChild(el('div','cal-time-label',lbl));
     }
     grid.appendChild(timeCol);
 
-    // day columns
-    DAY_ORDER.forEach(day => {
-      const col = el('div', 'cal-day-col');
-      col.style.height = (TOTAL_H * PX_PER_H) + 'px';
+    /* day columns */
+    DAYS.forEach((day, di) => {
+      const col = el('div','cal-day-body');
+      col.style.height = ((EH-SH)*PH)+'px';
 
-      // hour lines
-      for (let h = 0; h < TOTAL_H; h++) {
-        const line = el('div', 'cal-hour-line');
-        line.style.top = (h * PX_PER_H) + 'px';
-        col.appendChild(line);
+      /* hour lines */
+      for (let h = 0; h < EH-SH; h++) {
+        const ln = el('div','cal-h-line'); ln.style.top=(h*PH)+'px'; col.appendChild(ln);
       }
 
-      // class events
+      /* class events */
       classTimes.forEach(cs => {
         if (cs.day !== day || !cs.start) return;
-        const top  = ((toM(cs.start) / 60) - START_HOUR) * PX_PER_H;
-        const h    = ((toM(cs.end) - toM(cs.start)) / 60) * PX_PER_H;
-        if (top < 0 || top > TOTAL_H * PX_PER_H) return;
-        const ev = el('div', 'cal-event cal-event--class',
-          `<div>${cs.course}</div><div style="font-weight:400;font-size:0.65rem">${cs.start}–${cs.end}</div>`);
-        ev.style.top    = top + 'px';
-        ev.style.height = Math.max(h, 24) + 'px';
+        const top = ((toM(cs.start)/60)-SH)*PH;
+        const ht  = ((toM(cs.end)-toM(cs.start))/60)*PH;
+        if (top < 0) return;
+        const ev = el('div','cal-ev cal-ev--class');
+        ev.innerHTML = `<div>${cs.course}</div><div style="font-weight:400">${cs.start}–${cs.end}</div>`;
+        ev.style.cssText = `top:${top}px;height:${Math.max(ht,22)}px`;
         col.appendChild(ev);
       });
 
-      // study sessions
-      sessions.filter(s => s.day === day).forEach(s => {
-        const top = ((toM(s.start) / 60) - START_HOUR) * PX_PER_H;
-        const h   = ((toM(s.end) - toM(s.start)) / 60) * PX_PER_H;
+      /* study sessions */
+      sessions.filter(s=>s.day===day).forEach(s => {
+        const top = ((toM(s.start)/60)-SH)*PH;
+        const ht  = ((toM(s.end)-toM(s.start))/60)*PH;
         if (top < 0) return;
         const urgent = s.score < window.CONFIG.weakThreshold;
-        const ev = el('div', `cal-event ${urgent ? 'cal-event--study-urgent' : 'cal-event--study'}`,
-          `<div>📖 ${s.topic}</div><div style="font-weight:400;font-size:0.65rem">${s.start}–${s.end}</div>`);
-        ev.style.top    = top + 'px';
-        ev.style.height = Math.max(h, 28) + 'px';
+        const ev = el('div',`cal-ev ${urgent?'cal-ev--urgent':'cal-ev--study'}`);
+        ev.innerHTML = `<div>📖 ${s.topic}</div><div style="font-weight:400">${s.start}–${s.end}</div>`;
+        ev.style.cssText = `top:${top}px;height:${Math.max(ht,26)}px`;
         col.appendChild(ev);
       });
 
-      // deadline markers (all-day style: stack at top)
-      const weekDeadlines = cal.filter(a => {
-        const semStart = new Date('2027-01-11');
-        const weekOffset = (week - 1) * 7;
-        const dayIdx = DAY_ORDER.indexOf(day);
-        const d = new Date(semStart);
-        d.setDate(semStart.getDate() + weekOffset + dayIdx);
-        return a.due_date === d.toISOString().slice(0, 10);
-      });
-      weekDeadlines.forEach((a, i) => {
-        const ev = el('div', 'cal-event cal-event--deadline',
-          `${a.type === 'Exam' ? '🎓' : a.type === 'Quiz' ? '📝' : '📚'} ${a.item}`);
-        ev.style.top    = (i * 22) + 'px';
-        ev.style.height = '20px';
-        ev.style.left   = '2px';
-        ev.style.right  = '2px';
+      /* deadline markers */
+      const semMon2 = new Date('2027-01-11');
+      const colDate = new Date(semMon2);
+      colDate.setDate(semMon2.getDate()+(week-1)*7+di);
+      const colDateStr = colDate.toISOString().slice(0,10);
+      cal.filter(a=>a.due_date===colDateStr).forEach((a,i) => {
+        const ev = el('div','cal-ev cal-ev--dead');
+        ev.textContent = (a.type==='Exam'?'🎓 ':a.type==='Quiz'?'📝 ':'📚 ')+a.item;
+        ev.style.cssText = `top:${i*20}px;height:18px`;
         col.appendChild(ev);
       });
 
@@ -277,145 +253,133 @@
     });
 
     wrap.innerHTML = '';
-    wrap.appendChild(hdr);
-    wrap.appendChild(grid);
+    const outer = el('div','cal-outer');
+    outer.appendChild(hdr);
+    outer.appendChild(grid);
+    wrap.appendChild(outer);
   }
 
-  /* ─── DEADLINES LIST ────────────────────────────────────────── */
+  /* ══ DEADLINES ═══════════════════════════════════════ */
   function renderDeadlines(week) {
     const wrap = document.getElementById('deadlines-list');
     if (!wrap) return;
     wrap.innerHTML = '';
+    const items = window.AppData.assignmentCalendar
+      .filter(a => a.week >= week && a.week <= week+2)
+      .sort((a,b)=>new Date(a.due_date)-new Date(b.due_date));
 
-    const cal = window.AppData.assignmentCalendar;
-    const items = cal.filter(a => a.week >= week && a.week <= week + 2)
-                     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
-
-    if (items.length === 0) {
-      wrap.appendChild(el('p', 'empty', 'No deadlines in the next 2 weeks.'));
-      return;
-    }
+    if (!items.length) { wrap.appendChild(el('p','empty','No deadlines in the next 2 weeks.')); return; }
 
     items.forEach(a => {
-      const badge = dueBadge(a.due_date);
-      const item  = el('div', 'deadline-item');
+      const p = urgencyPill(a.due_date);
+      const item = el('div','deadline-item');
       item.innerHTML = `
-        <div class="deadline-dot deadline-dot--${a.type.toLowerCase()}"></div>
-        <div class="deadline-info">
-          <div class="deadline-name">${a.item}</div>
-          <div class="deadline-topic">${a.topic}</div>
+        <div class="di-dot di-dot--${a.type.toLowerCase()}"></div>
+        <div class="di-body">
+          <div class="di-name">${a.item}</div>
+          <div class="di-topic">${a.topic}</div>
         </div>
-        <span class="deadline-due ${badge.cls}">${badge.label}</span>`;
+        <span class="pill ${p.cls}">${p.label}</span>`;
       wrap.appendChild(item);
     });
   }
 
-  /* ─── TOPIC SCORES ──────────────────────────────────────────── */
-  function renderTopicScores(rankedTopics) {
+  /* ══ TOPIC SCORES ════════════════════════════════════ */
+  function renderTopicScores(ranked) {
     const wrap = document.getElementById('topic-scores');
     if (!wrap) return;
     wrap.innerHTML = '';
-
-    rankedTopics.forEach(t => {
-      const lbl = window.scoreLabel(t.score_percent);
-      const row = el('div', 'topic-row-item');
+    ranked.forEach(t => {
+      const row = el('div','score-row');
       row.innerHTML = `
-        <div class="topic-name-label">${t.topic}</div>
-        <div class="topic-track"><div class="topic-fill topic-fill--${lbl}" style="width:${t.score_percent}%"></div></div>
-        <div class="topic-score-num">${t.score_percent}%</div>`;
+        <div class="score-label">${t.topic}</div>
+        <div class="score-track"><div class="score-fill ${scoreFill(t.score_percent)}" style="width:${t.score_percent}%"></div></div>
+        <div class="score-num">${t.score_percent}%</div>`;
       wrap.appendChild(row);
     });
   }
 
-  /* ─── STUDY SESSIONS LIST ───────────────────────────────────── */
+  /* ══ SESSIONS CHECKLIST ══════════════════════════════ */
   function renderSessions(sessions, student, week) {
     const wrap = document.getElementById('sessions-list');
     if (!wrap) return;
     wrap.innerHTML = '';
 
-    // progress bar
-    const done  = window.Persistence.countCompleted(student.student_id, week, sessions.length);
-    const pct   = sessions.length ? Math.round((done / sessions.length) * 100) : 0;
-    const prog  = el('div', 'progress-wrap');
+    /* progress */
+    const done = window.Persistence.countCompleted(student.student_id, week, sessions.length);
+    const pct  = sessions.length ? Math.round(done/sessions.length*100) : 0;
+    const prog = el('div','prog-wrap');
     prog.innerHTML = `
-      <div class="progress-label"><span>Week ${week} progress</span><strong>${done}/${sessions.length} done</strong></div>
-      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+      <div class="prog-row">
+        <span class="prog-label">Week ${week}</span>
+        <span class="prog-frac">${done}/${sessions.length}</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill${pct===100?' prog-fill--done':''}" style="width:${pct}%"></div></div>`;
     wrap.appendChild(prog);
 
-    if (sessions.length === 0) {
-      wrap.appendChild(el('p', 'empty', 'No sessions — your availability windows are outside your class-free time, or all slots are filled. Try a different week.'));
+    if (!sessions.length) {
+      wrap.appendChild(el('p','empty','No sessions fit this week — your free windows may overlap class time, or the week is fully scheduled. Try another week.'));
       return;
     }
 
     sessions.forEach(s => {
       const isDone = window.Persistence.isComplete(student.student_id, week, s.sessionNum);
       const urgent = s.score < window.CONFIG.weakThreshold;
-      const item   = el('div', 'session-item' + (isDone ? ' session-item--done' : ''));
+      const item   = el('div','session-item'+(isDone?' done':''));
       item.innerHTML = `
-        <div class="session-check-wrap">
-          <input type="checkbox" class="session-checkbox" ${isDone ? 'checked' : ''}>
-        </div>
-        <div class="session-body">
-          <div class="session-title">${s.day} ${s.start}–${s.end} · ${s.topic}</div>
-          <div class="session-meta">Score: ${s.score}% · Priority: ${(s.priority*100).toFixed(0)}/100</div>
-          <div class="session-tags">
-            ${urgent ? '<span class="session-tag session-tag--urgent">Needs focus</span>' : '<span class="session-tag">On track</span>'}
-            ${s.reasons.map(r => `<span class="session-tag">${r}</span>`).join('')}
+        <input type="checkbox" class="si-cb" ${isDone?'checked':''}>
+        <div class="si-body">
+          <div class="si-title">${s.day} · ${s.start}–${s.end}</div>
+          <div class="si-meta">${s.topic} · Score: ${s.score}%</div>
+          <div class="si-pills">
+            <span class="pill ${urgent?'pill--red':'pill--green'}">${urgent?'Needs focus':'On track'}</span>
+            ${s.reasons.map(r=>`<span class="pill pill--grey">${r}</span>`).join('')}
           </div>
         </div>`;
-
-      item.querySelector('.session-checkbox').addEventListener('change', function () {
+      item.querySelector('.si-cb').addEventListener('change', function () {
         window.Persistence.setComplete(student.student_id, week, s.sessionNum, this.checked);
-        renderSessions(sessions, student, week); // re-render to update progress
+        renderSessions(sessions, student, week);
         window.UI.renderStats(student, window.analyseTopics(student, week), week);
       });
       wrap.appendChild(item);
     });
   }
 
-  /* ─── RESOURCES ─────────────────────────────────────────────── */
+  /* ══ RESOURCES ═══════════════════════════════════════ */
   function renderResources(matched) {
     const wrap = document.getElementById('resources-list');
     if (!wrap) return;
     wrap.innerHTML = '';
+    const icons = {'Tutoring':'🧑‍🏫','Office hours':'👩‍💼','Lab':'🔬','Video':'▶️','Practice set':'📝','Workshop':'🛠️','Coaching':'💡'};
+    const all   = [...matched.fits.map(r=>({r,fit:true})), ...matched.alternatives.map(r=>({r,fit:false}))];
 
-    const typeIcon = { 'Tutoring':'🧑‍🏫','Office hours':'👩‍💼','Lab':'🔬','Video':'▶️','Practice set':'📝','Workshop':'🛠️','Coaching':'💡' };
-    const all = [...matched.fits.map(r => ({r, fit:true})), ...matched.alternatives.map(r => ({r, fit:false}))];
+    if (!all.length) { wrap.appendChild(el('p','empty','No matching resources found.')); return; }
 
-    if (all.length === 0) {
-      wrap.appendChild(el('p', 'empty', 'No matching resources found.'));
-      return;
-    }
-
-    all.forEach(({ r, fit }) => {
-      const timeStr = r.day === 'Any'
-        ? 'Available any time (online)'
-        : `${r.day}${r.start ? ' ' + r.start + '–' + r.end : ''}`;
-      const item = el('div', 'resource-item');
+    all.forEach(({r, fit}) => {
+      const timeStr = r.day==='Any' ? 'Any time · Online'
+        : `${r.day}${r.start ? ' '+r.start+'–'+r.end : ''}`;
+      const item = el('div','resource-item');
       item.innerHTML = `
-        <div class="resource-icon-wrap">${typeIcon[r.type] || '📚'}</div>
-        <div class="resource-body" style="flex:1">
-          <div class="resource-name">${r.name}</div>
-          <div class="resource-meta">${r.type} · ${r.modality} · ${r.location}</div>
-          <div class="resource-time">${timeStr}</div>
-          <div style="font-size:0.75rem;color:#6b7280;margin-top:2px">${r.description}</div>
+        <div class="ri-icon">${icons[r.type]||'📚'}</div>
+        <div class="ri-body">
+          <div class="ri-name">${r.name}</div>
+          <div class="ri-tutor">👤 ${r.tutor}</div>
+          <div class="ri-time">🕐 ${timeStr} · ${r.location}</div>
+          <div class="ri-pills">
+            <span class="pill pill--${r.modality==='Online'?'teal':'blue'}">${r.modality}</span>
+            <span class="pill pill--grey">${r.type}</span>
+            ${r.topics!=='All'?r.topics.split(',').slice(0,2).map(t=>`<span class="pill pill--purple">${t.trim()}</span>`).join(''):''}
+          </div>
         </div>
-        <span class="${fit ? 'resource-fit-badge' : 'resource-alt-badge'}">${fit ? '✓ Fits' : 'Alt'}</span>`;
+        <span class="${fit?'ri-fit':'ri-alt'}">${fit?'✓ Fits':'Alt'}</span>`;
       wrap.appendChild(item);
     });
   }
 
   window.UI = {
-    renderStudentNav,
-    renderWeekNav,
-    renderTopBar,
-    renderStats,
-    renderTodayRec,
-    renderMotivation,
-    renderCalendar,
-    renderDeadlines,
-    renderTopicScores,
-    renderSessions,
-    renderResources
+    renderTopBar, renderStudentNav, renderWeekNav,
+    renderStats, renderTodayCard, renderMotive,
+    renderCalendar, renderDeadlines, renderTopicScores,
+    renderSessions, renderResources
   };
 }());

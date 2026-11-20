@@ -1,7 +1,6 @@
-// app.js v2 — application controller
+// app.js v3
 (function () {
   'use strict';
-
   let selectedStudentId = null;
   let selectedWeek      = 1;
 
@@ -15,8 +14,8 @@
     const streak   = window.Persistence.getStreak(s.student_id);
 
     window.UI.renderStats(s, ranked, selectedWeek);
-    window.UI.renderTodayRec(s, ranked, sessions);
-    window.UI.renderMotivation(s, streak);
+    window.UI.renderTodayCard(s, ranked, sessions);
+    window.UI.renderMotive(s, streak);
     window.UI.renderCalendar(s, sessions, selectedWeek);
     window.UI.renderDeadlines(selectedWeek);
     window.UI.renderTopicScores(ranked);
