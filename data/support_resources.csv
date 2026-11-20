@@ -1,0 +1,14 @@
+resource_id,name,type,topics,day,start,end,modality,location,description
+R01,Math Tutoring Center,Tutoring,All,Monday,08:00,16:00,In person,"Library, Room L120",Drop-in help from peer and professional tutors
+R02,Math Tutoring Center,Tutoring,All,Tuesday,08:00,19:00,In person,"Library, Room L120",Drop-in help from peer and professional tutors
+R03,Math Tutoring Center,Tutoring,All,Wednesday,08:00,16:00,In person,"Library, Room L120",Drop-in help from peer and professional tutors
+R04,Math Tutoring Center,Tutoring,All,Thursday,08:00,19:00,In person,"Library, Room L120",Drop-in help from peer and professional tutors
+R05,Online Tutoring,Tutoring,All,Any,00:00,23:59,Online,"Student portal, Tutoring tab","24/7 live online tutoring, about a 10 minute wait"
+R06,Instructor office hours (Section 01),Office hours,All,Wednesday,11:30,12:30,In person,Room B220,Questions about class material and grades
+R07,Instructor office hours (Section 40),Office hours,All,Tuesday,17:00,18:00,Online,Video link in the course page,Questions about class material and grades
+R08,Math Lab study group,Lab,"Factoring, Quadratic equations, Polynomials",Friday,12:00,13:30,In person,Room B210,Guided group practice led by a tutor
+R09,Solving equations video set,Video,"Linear equations, Inequalities",Any,,,Online,"Course page, Week 1 module","Six short videos, about 40 minutes total"
+R10,Functions practice set,Practice set,"Functions and notation, Graphing lines",Any,,,Online,"Course page, Week 3 module",30 practice problems with worked solutions
+R11,Systems of equations workshop,Workshop,Systems of equations,Thursday,15:00,16:00,In person,Room B210,One-hour workshop before Exam 2
+R12,Exponents and logs review,Video,"Radicals and exponents, Exponential functions, Logarithms",Any,,,Online,"Course page, Week 9 module",Review videos with practice quizzes
+R13,Study skills coaching,Coaching,All,Monday,13:00,17:00,In person,Student Success Center,30-minute sessions on time management and test prep

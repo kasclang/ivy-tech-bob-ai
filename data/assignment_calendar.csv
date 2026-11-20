@@ -1,0 +1,33 @@
+course,week,due_date,item,type,topic,points
+MATH 136,1,2027-01-15,Homework 1: Linear equations,Homework,Linear equations,20
+MATH 036,1,2027-01-15,Skills practice 1,Practice,Linear equations,10
+MATH 136,2,2027-01-22,Homework 2: Inequalities,Homework,Inequalities,20
+MATH 136,2,2027-01-21,Quiz 1,Quiz,Inequalities,25
+MATH 036,2,2027-01-22,Skills practice 2,Practice,Inequalities,10
+MATH 136,3,2027-01-29,Homework 3: Functions and notation,Homework,Functions and notation,20
+MATH 136,3,2027-01-27,Exam 1,Exam,"Linear equations, Inequalities, Functions and notation",100
+MATH 036,3,2027-01-29,Skills practice 3,Practice,Functions and notation,10
+MATH 136,4,2027-02-05,Homework 4: Graphing lines,Homework,Graphing lines,20
+MATH 136,4,2027-02-04,Quiz 2,Quiz,Graphing lines,25
+MATH 036,4,2027-02-05,Skills practice 4,Practice,Graphing lines,10
+MATH 136,5,2027-02-12,Homework 5: Systems of equations,Homework,Systems of equations,20
+MATH 036,5,2027-02-12,Skills practice 5,Practice,Systems of equations,10
+MATH 136,6,2027-02-19,Homework 6: Polynomials,Homework,Polynomials,20
+MATH 136,6,2027-02-17,Exam 2,Exam,"Graphing lines, Systems of equations, Polynomials",100
+MATH 036,6,2027-02-19,Skills practice 6,Practice,Polynomials,10
+MATH 136,7,2027-02-26,Homework 7: Factoring,Homework,Factoring,20
+MATH 036,7,2027-02-26,Skills practice 7,Practice,Factoring,10
+MATH 136,8,2027-03-05,Homework 8: Rational expressions,Homework,Rational expressions,20
+MATH 136,8,2027-03-04,Quiz 4,Quiz,Rational expressions,25
+MATH 036,8,2027-03-05,Skills practice 8,Practice,Rational expressions,10
+MATH 136,9,2027-03-12,Homework 9: Radicals and exponents,Homework,Radicals and exponents,20
+MATH 136,9,2027-03-10,Exam 3,Exam,"Factoring, Rational expressions, Radicals and exponents",100
+MATH 036,9,2027-03-12,Skills practice 9,Practice,Radicals and exponents,10
+MATH 136,10,2027-03-19,Homework 10: Quadratic equations,Homework,Quadratic equations,20
+MATH 136,10,2027-03-18,Quiz 5,Quiz,Quadratic equations,25
+MATH 036,10,2027-03-19,Skills practice 10,Practice,Quadratic equations,10
+MATH 136,11,2027-03-26,Homework 11: Exponential functions,Homework,Exponential functions,20
+MATH 036,11,2027-03-26,Skills practice 11,Practice,Exponential functions,10
+MATH 136,12,2027-04-02,Homework 12: Logarithms,Homework,Logarithms,20
+MATH 136,12,2027-03-31,Exam 4,Exam,"Quadratic equations, Exponential functions, Logarithms",100
+MATH 036,12,2027-04-02,Skills practice 12,Practice,Logarithms,10
