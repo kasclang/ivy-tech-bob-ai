@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic Readiness Coach — Ivy Tech</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-wrap">
+    <h1>🎓 Academic Readiness Coach</h1>
+    <p>Ivy Tech IT Challenge 2026 · MATH 136 College Algebra · Know what to study. Know when to get help.</p>
+  </div>
+</header>
+
+<main class="app-wrap">
+
+  <!-- Student picker -->
+  <div class="panel">
+    <div class="panel-title">Select a student</div>
+    <div id="student-selector"></div>
+  </div>
+
+  <!-- Week picker -->
+  <div class="panel">
+    <div class="panel-title">Select a curriculum week</div>
+    <div id="week-selector"></div>
+  </div>
+
+  <!-- Personalised plan (shown after selection) -->
+  <div id="plan-container" style="display:none">
+
+    <!-- Student overview card -->
+    <div class="panel" id="student-card"></div>
+
+    <!-- Two-column layout on wide screens -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+
+      <!-- Left: topic priorities -->
+      <div class="panel" id="topics-section"></div>
+
+      <!-- Right: upcoming assignments -->
+      <div class="panel" id="assignments-section"></div>
+
+    </div>
+
+    <!-- Study schedule -->
+    <div class="panel" id="schedule-section"></div>
+
+    <!-- Resources -->
+    <div class="panel" id="resources-section"></div>
+
+  </div>
+
+</main>
+
+<footer class="app-wrap app-footer">
+  <p>Academic Readiness Coach · Ivy Tech IT Challenge 2026 · Prototype — sample data only, no real student records</p>
+</footer>
+
+<!-- Data (window.CASE_DATA) -->
+<script src="data/case_data.js"></script>
+
+<!-- App modules — load order matters -->
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/scheduler.js"></script>
+<script src="js/resources.js"></script>
+<script src="js/persistence.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
