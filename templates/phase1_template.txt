@@ -1,0 +1,9 @@
+# Operation Clean Claim - Part 1
+# Replace each value after '='. Do not rename keys.
+provider_account=
+source_ip=
+affected_system=
+earliest_malicious_event=
+record_count=
+evidence_event_1=
+evidence_event_2=

@@ -1,0 +1,9 @@
+# Operation Clean Claim - Part 2
+# Replace each value after '='. Do not rename keys.
+external_ip=
+domain=
+protocol=
+destination_port=
+staged_file=
+uri=
+decoded_token=
