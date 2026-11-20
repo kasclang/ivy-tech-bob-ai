@@ -7,63 +7,91 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+<div class="app-shell">
 
-<header class="app-header">
-  <div class="app-wrap">
-    <h1>🎓 Academic Readiness Coach</h1>
-    <p>Ivy Tech IT Challenge 2026 · MATH 136 College Algebra · Know what to study. Know when to get help.</p>
-  </div>
-</header>
+  <!-- ══ TOP BAR ══ -->
+  <header class="top-bar">
+    <div class="top-bar-brand">🎓 Academic Readiness <span>Coach</span></div>
+    <div class="top-bar-right">
+      <span class="today-badge" id="today-date"></span>
+    </div>
+  </header>
 
-<main class="app-wrap">
+  <!-- ══ SIDEBAR ══ -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Students</div>
+    <div id="student-nav"></div>
 
-  <!-- Student picker -->
-  <div class="panel">
-    <div class="panel-title">Select a student</div>
-    <div id="student-selector"></div>
-  </div>
+    <div class="sidebar-label" style="margin-top:24px">Curriculum Week</div>
+    <div class="week-nav" id="week-nav"></div>
+  </nav>
 
-  <!-- Week picker -->
-  <div class="panel">
-    <div class="panel-title">Select a curriculum week</div>
-    <div id="week-selector"></div>
-  </div>
+  <!-- ══ MAIN CONTENT ══ -->
+  <main class="main-content">
 
-  <!-- Personalised plan (shown after selection) -->
-  <div id="plan-container" style="display:none">
+    <!-- Stat cards row -->
+    <div class="dash-row" id="stat-cards"></div>
 
-    <!-- Student overview card -->
-    <div class="panel" id="student-card"></div>
+    <!-- TODAY recommendation banner -->
+    <div class="today-rec" id="today-rec"></div>
 
-    <!-- Two-column layout on wide screens -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+    <!-- Motivational message -->
+    <div class="motive-banner" id="motive-banner"></div>
 
-      <!-- Left: topic priorities -->
-      <div class="panel" id="topics-section"></div>
+    <!-- Two-column: Calendar (left wide) + Right panel -->
+    <div class="content-grid">
 
-      <!-- Right: upcoming assignments -->
-      <div class="panel" id="assignments-section"></div>
+      <!-- LEFT: weekly calendar -->
+      <div>
+        <div class="card">
+          <div class="card-title">📅 Weekly Calendar</div>
+          <div id="cal-wrap" style="overflow-x:auto"></div>
+        </div>
 
+        <!-- Study sessions checklist -->
+        <div class="card">
+          <div class="card-title">✅ Your Study Sessions</div>
+          <div id="sessions-list"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: deadlines + scores + resources -->
+      <div>
+
+        <!-- Upcoming deadlines -->
+        <div class="card">
+          <div class="card-title">⏰ Upcoming Deadlines</div>
+          <div id="deadlines-list"></div>
+        </div>
+
+        <!-- Topic diagnostic scores -->
+        <div class="card">
+          <div class="card-title">📊 Diagnostic Scores</div>
+          <div id="topic-scores"></div>
+        </div>
+
+        <!-- Support resources -->
+        <div class="card">
+          <div class="card-title">🎓 Support Resources</div>
+          <div id="resources-list"></div>
+        </div>
+
+      </div>
     </div>
 
-    <!-- Study schedule -->
-    <div class="panel" id="schedule-section"></div>
+  </main>
 
-    <!-- Resources -->
-    <div class="panel" id="resources-section"></div>
+  <!-- ══ FOOTER ══ -->
+  <footer class="app-footer">
+    Ivy Tech IT Challenge 2026 · Academic Readiness Coach · Prototype — sample data only, no real student records
+  </footer>
 
-  </div>
+</div>
 
-</main>
-
-<footer class="app-wrap app-footer">
-  <p>Academic Readiness Coach · Ivy Tech IT Challenge 2026 · Prototype — sample data only, no real student records</p>
-</footer>
-
-<!-- Data (window.CASE_DATA) -->
+<!-- Data -->
 <script src="data/case_data.js"></script>
 
-<!-- App modules — load order matters -->
+<!-- Modules (order matters) -->
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/analysis.js"></script>

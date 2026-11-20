@@ -1,61 +1,46 @@
-// app.js — application controller: state management and event wiring.
-// Depends on: all other js/* modules
+// app.js v2 — application controller
 (function () {
   'use strict';
 
-  /* ── state ── */
   let selectedStudentId = null;
   let selectedWeek      = 1;
 
-  function getStudent() {
-    return window.AppData.studentMap[selectedStudentId];
-  }
+  function student() { return window.AppData.studentMap[selectedStudentId]; }
 
-  /* ── render full plan ── */
-  function renderPlan() {
-    const student = getStudent();
-    if (!student) return;
+  function renderAll() {
+    const s        = student();
+    const ranked   = window.analyseTopics(s, selectedWeek);
+    const sessions = window.buildSchedule(s, ranked, selectedWeek);
+    const matched  = window.matchResources(s, ranked);
+    const streak   = window.Persistence.getStreak(s.student_id);
 
-    const ranked  = window.analyseTopics(student, selectedWeek);
-    const sessions = window.buildSchedule(student, ranked, selectedWeek);
-    const matched  = window.matchResources(student, ranked);
-
-    window.UI.renderStudentCard(student);
-    window.UI.renderTopics(ranked);
-    window.UI.renderSchedule(sessions, student, selectedWeek);
+    window.UI.renderStats(s, ranked, selectedWeek);
+    window.UI.renderTodayRec(s, ranked, sessions);
+    window.UI.renderMotivation(s, streak);
+    window.UI.renderCalendar(s, sessions, selectedWeek);
+    window.UI.renderDeadlines(selectedWeek);
+    window.UI.renderTopicScores(ranked);
+    window.UI.renderSessions(sessions, s, selectedWeek);
     window.UI.renderResources(matched);
-    window.UI.renderAssignments(selectedWeek);
-
-    // scroll to plan
-    document.getElementById('plan-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /* ── student selection ── */
   function selectStudent(id) {
     selectedStudentId = id;
-    window.UI.renderStudentSelector(window.AppData.students, id, selectStudent);
-    window.UI.renderWeekSelector(selectedWeek, selectWeek);
-    document.getElementById('plan-container').style.display = 'block';
-    renderPlan();
+    window.UI.renderStudentNav(window.AppData.students, id, selectStudent);
+    renderAll();
   }
 
-  /* ── week selection ── */
   function selectWeek(w) {
     selectedWeek = w;
-    window.UI.renderWeekSelector(w, selectWeek);
-    renderPlan();
+    window.UI.renderWeekNav(w, selectWeek);
+    renderAll();
   }
 
-  /* ── boot ── */
   function init() {
-    const students = window.AppData.students;
-    // default: first student, week 1
-    window.UI.renderStudentSelector(students, students[0].student_id, selectStudent);
-    window.UI.renderWeekSelector(1, selectWeek);
-
-    // hide plan until a student is selected explicitly on first load
-    // but auto-select first student so the page is immediately useful
-    selectStudent(students[0].student_id);
+    window.UI.renderTopBar();
+    window.UI.renderStudentNav(window.AppData.students, null, selectStudent);
+    window.UI.renderWeekNav(1, selectWeek);
+    selectStudent(window.AppData.students[0].student_id);
   }
 
   document.addEventListener('DOMContentLoaded', init);
