@@ -1,0 +1,596 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team × IBM Bob — Collaboration Log</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    background: #ffffff;
+    color: #1f2328;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    border-bottom: 2px solid #3b82d4;
+    padding-bottom: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  .doc-header .meta-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #ede9fe; color: #6d28d9; }
+  .badge-green  { background: #d1fae5; color: #065f46; }
+  .badge-amber  { background: #fef3c7; color: #92400e; }
+
+  h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #1f2328;
+    margin-bottom: 0.3rem;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: #57606a;
+  }
+
+  /* ── Section headers ── */
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f2328;
+    margin-top: 2.4rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h2 .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #3b82d4;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2328;
+    margin-top: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+
+  p { margin-bottom: 0.65rem; }
+
+  /* ── Log entries (timeline) ── */
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 0 1.2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f0f1f3;
+    position: relative;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-who {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 2px;
+    color: #57606a;
+  }
+  .log-who.bob   { color: #3b82d4; }
+  .log-who.team  { color: #7c5cd8; }
+  .log-who.both  { color: #065f46; }
+  .log-body { font-size: 13.5px; }
+  .log-label {
+    font-weight: 600;
+    color: #1f2328;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .log-body p { margin-bottom: 0.4rem; }
+  .log-body ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+  .log-body ul li { margin-bottom: 0.2rem; }
+
+  /* ── Decision table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 1rem 0;
+  }
+  th {
+    background: #f7f8fa;
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    color: #1f2328;
+  }
+  td {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+    color: #1f2328;
+  }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; padding: 0; margin: 0.5rem 0 1rem; }
+  .checklist li {
+    padding: 0.3rem 0 0.3rem 1.6rem;
+    position: relative;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f1f3;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #065f46;
+    font-weight: 700;
+  }
+
+  /* ── Quote / insight block ── */
+  .insight {
+    background: #f7f8fa;
+    border-left: 3px solid #3b82d4;
+    padding: 0.7rem 1rem;
+    margin: 0.8rem 0;
+    font-size: 13px;
+    color: #1f2328;
+    border-radius: 0 4px 4px 0;
+  }
+  .insight strong { color: #3b82d4; }
+
+  /* ── Status pills inline ── */
+  .pill {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  .pill-done   { background: #d1fae5; color: #065f46; }
+  .pill-key    { background: #dbeafe; color: #1d4ed8; }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="doc-header">
+    <div class="meta-row">
+      <span class="badge badge-blue">2026 Ivy Tech IT Challenge</span>
+      <span class="badge badge-purple">Case 1 · AI Academic Readiness Coach</span>
+      <span class="badge badge-green">Data Analytics, Applied AI &amp; Informatics</span>
+    </div>
+    <h1>Team × IBM Bob — Collaboration Log</h1>
+    <p class="doc-subtitle">
+      A complete record of everything the team and IBM Bob worked through together — from the first idea to the final shipped prototype.
+      Covers problem framing, design decisions, what was prioritized, what was built, and how Bob was embedded into the product itself.
+    </p>
+  </div>
+
+  
+  <h2><span class="section-num">1</span> Where We Started — The Problem We Agreed On</h2>
+
+  <p>
+    The team came to Bob with the 2026 Ivy Tech IT Challenge brief and a focused concern:
+    first-semester students placed in co-requisite math (MATH 136 College Algebra + MATH 036
+    Algebra Support) don't know what to study or when to ask for help — not until after they've
+    already failed their first exam. By the time the signal arrives, it's too late.
+  </p>
+
+  <div class="insight">
+    <strong>The core insight the team brought:</strong> The failure isn't a knowledge gap alone — it's a
+    <em>visibility gap</em>. Students can't see their own skill holes, can't connect them to deadlines,
+    and can't navigate the support resources that exist. Fix the visibility, and the help-seeking
+    behaviour follows.
+  </div>
+
+  <p>
+    Bob helped the team sharpen that framing into a single, testable user story the whole prototype
+    could be anchored to:
+  </p>
+  <div class="insight">
+    <strong>Starter User Story (agreed with Bob):</strong><br />
+    <em>"As a first-semester student in co-requisite math, I can get a weekly study plan with
+    tutoring options so that I pass my first college math course."</em>
+  </div>
+
+  
+  <h2><span class="section-num">2</span> What We Prioritized — and Why</h2>
+
+  <p>
+    Before writing a single line of code, the team and Bob worked through what actually had to
+    be in the prototype versus what could wait. The decisions below reflect that conversation.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Decision</th>
+        <th>What was chosen</th>
+        <th>What was set aside</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tech stack</strong></td>
+        <td>Vanilla HTML + CSS + JS, zero build step</td>
+        <td>React, Vue, any framework</td>
+        <td>Runs in any browser with no server. Demo judges can open one file. Complexity would add nothing at prototype scale.</td>
+      </tr>
+      <tr>
+        <td><strong>Data layer</strong></td>
+        <td>All data in <code>case_data.js</code> loaded client-side</td>
+        <td>API calls, database, login backend</td>
+        <td>Challenge provides a dataset. No backend = no deployment friction, no authentication headaches.</td>
+      </tr>
+      <tr>
+        <td><strong>AI engine</strong></td>
+        <td>IBM Bob (watsonx Assistant) via web chat embed</td>
+        <td>OpenAI API, fine-tuned model</td>
+        <td>Challenge requirement. Bob also allowed the team to reason through the solution <em>before</em> building it, then be embedded as the live AI engine inside the product itself.</td>
+      </tr>
+      <tr>
+        <td><strong>Bob integration method</strong></td>
+        <td>Context injection — build a structured prompt block per student and prepend it to every message</td>
+        <td>System-prompt-only approach; function calling</td>
+        <td>Guarantees Bob always has the full student picture without server-side state. Simple, auditable, works at prototype scale.</td>
+      </tr>
+      <tr>
+        <td><strong>Resource matching</strong></td>
+        <td>Rule-based: topic overlap + schedule overlap</td>
+        <td>ML ranking, embeddings</td>
+        <td>Dataset is small and well-structured. Rules are transparent, debuggable, and correct. Overkill to use ML here.</td>
+      </tr>
+      <tr>
+        <td><strong>Metric targeted</strong></td>
+        <td>Gateway course success rate (MATH 136 pass rate)</td>
+        <td>Retention, enrollment, GPA broadly</td>
+        <td>MATH 136 is a named gateway bottleneck in Ivy Tech Strategic Plan 2030. Narrowing to one metric made the impact argument credible.</td>
+      </tr>
+      <tr>
+        <td><strong>Strategic pillar</strong></td>
+        <td>Academic &amp; Instructional Quality</td>
+        <td>Workforce development, transfer</td>
+        <td>Direct match to the sub-strategy: Optimize Student Placement &amp; Academic Readiness.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  
+  <h2><span class="section-num">3</span> The Two Roles IBM Bob Played</h2>
+
+  <p>
+    One of the cleaner decisions in the project was recognising that Bob had two completely different
+    jobs — and keeping them distinct.
+  </p>
+
+  <div class="log">
+    <div class="log-entry">
+      <div class="log-who bob">Bob<br />Role 1</div>
+      <div class="log-body">
+        <span class="log-label">Planning partner — before any code was written</span>
+        <p>
+          Bob was used to reason through the user story, design the context-injection approach, work
+          out the resource-matching logic, and produce the full sub-task build plan. The team could
+          ask "what should the prompt contain?" or "how do we handle schedule overlap?" and get
+          structured, concrete answers that directly shaped the architecture.
+        </p>
+        <p>
+          This is where the structured context block format was designed — the
+          <code>[STUDENT CONTEXT]</code> header, the score lines with ⚠ flags, the resource list
+          sorted by topic overlap, and the <code>[END CONTEXT]</code> footer. All of that was worked
+          out in conversation with Bob before <code>app.js</code> existed.
+        </p>
+      </div>
+    </div>
+    <div class="log-entry">
+      <div class="log-who bob">Bob<br />Role 2</div>
+      <div class="log-body">
+        <span class="log-label">Live AI coach — embedded inside the running product</span>
+        <p>
+          In the deployed prototype, Bob is the AI engine powering the chat panel. Every time a
+          student sends a message, <code>app.js</code> builds a fresh context block from
+          <code>window.CASE_DATA</code> and prepends it to the student's question before sending
+          to Bob. Bob replies with a personalised weekly study plan and tutoring recommendations.
+        </p>
+        <p>
+          Bob does not make autonomous decisions. It surfaces advice grounded in the provided
+          dataset and always points the student toward a human tutor, instructor, or coach for
+          high-stakes questions. The team was deliberate about this boundary.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  
+  <h2><span class="section-num">4</span> The Build — Every Sub-Task, What Changed, What Was Decided</h2>
+
+  <div class="log">
+
+    <div class="log-entry">
+      <div class="log-who both">Sub-Task 1</div>
+      <div class="log-body">
+        <span class="log-label">Student Selector Screen <span class="pill pill-done">Done</span></span>
+        <p>
+          Needed: an entry point that shows all five students and gates the dashboard until one is
+          selected. The team decided this had to be the <em>first</em> thing a demo judge sees —
+          it establishes the multi-student nature of the prototype immediately.
+        </p>
+        <ul>
+          <li>Created <code>index.html</code> with two top-level sections: <code>#selector-screen</code> and <code>#dashboard-screen</code> (hidden by default).</li>
+          <li><code>app.js</code> loops over <code>window.CASE_DATA.students</code> and renders one button per student showing name, program, modality, and work hours.</li>
+          <li>On click, the selected <code>student_id</code> is stored and the selector hides; the dashboard appears.</li>
+          <li>A "↩ Switch student" button in the header allows resetting without a page reload.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who both">Sub-Task 2</div>
+      <div class="log-body">
+        <span class="log-label">Student Profile Card <span class="pill pill-done">Done</span></span>
+        <p>
+          Decision: show identity and context at the top of every dashboard view so the student
+          (and the judge) always know whose data they're looking at without scrolling.
+        </p>
+        <ul>
+          <li>Renders: first name, program, modality, work hours/week, class days, class time, location, section.</li>
+          <li>Data pulled from <code>students</code>, <code>enrollments</code>, and <code>course_schedule</code> tables — joined in <code>renderProfile(id)</code>.</li>
+          <li>Styled with a distinct highlight colour to visually anchor the dashboard.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who both">Sub-Task 3</div>
+      <div class="log-body">
+        <span class="log-label">Diagnostic Scores Card <span class="pill pill-done">Done</span></span>
+        <p>
+          This card is the data foundation for everything else. The team and Bob agreed that the
+          threshold for "weak" should be <strong>&lt; 70%</strong> — consistent with common
+          academic pass standards and simple enough to explain to a student.
+        </p>
+        <ul>
+          <li>Each topic row shows a colour-coded bar: green ≥ 70%, amber 50–69%, red &lt; 50%.</li>
+          <li>Weak topics are labelled "Review" (amber) or "Needs work" (red).</li>
+          <li>These same weak topics drive resource matching and the Bob context block.</li>
+          <li>An empty-state message handles students with no diagnostic data yet — this was flagged as a real risk and handled explicitly.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who both">Sub-Task 4</div>
+      <div class="log-body">
+        <span class="log-label">Upcoming Assignments Card <span class="pill pill-done">Done</span></span>
+        <p>
+          Decision: show a 14-day window, not the whole semester. The goal is urgency and
+          relevance — the student needs to know what's happening <em>this week and next</em>,
+          not in April.
+        </p>
+        <ul>
+          <li>Filters <code>assignment_calendar</code> to the student's enrolled courses (MATH 136 + MATH 036) and the next 14 days from <code>TODAY</code>.</li>
+          <li><code>TODAY</code> is set to the actual current date (<code>new Date()</code>), so the demo is always live.</li>
+          <li>Items sorted by due date ascending; type badges (Exam, Quiz, Homework) visually distinguish urgency.</li>
+          <li>Deadlines are also injected into the Bob context block so Bob can reference them in study plan advice.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who both">Sub-Task 5</div>
+      <div class="log-body">
+        <span class="log-label">Support Resources Card <span class="pill pill-done">Done</span></span>
+        <p>
+          This was the most discussed sub-task. The team wanted resources that actually fit
+          the student's situation — not a generic list of everything Ivy Tech offers.
+          Bob helped design the two-filter approach during planning.
+        </p>
+        <ul>
+          <li><strong>Filter 1 (topic relevance):</strong> resources whose <code>topics</code> field overlaps with the student's weak topics, or equals "All".</li>
+          <li><strong>Filter 2 (schedule fit):</strong> cross-reference the resource's day/time against the student's <code>study_availability</code> windows. Output: "✓ Fits your schedule", "Online — anytime", or "Outside your availability".</li>
+          <li>Online resources always pass the schedule filter — a deliberate choice to ensure no student sees an empty list.</li>
+          <li>Matched resources are also listed in the Bob context block so Bob can name them specifically in recommendations.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who bob">Sub-Task 6</div>
+      <div class="log-body">
+        <span class="log-label">IBM Bob Chat Panel <span class="pill pill-done">Done</span> <span class="pill pill-key">Core AI requirement</span></span>
+        <p>
+          The centrepiece of the prototype. The team and Bob designed the context-injection
+          pattern here — the key architectural decision of the whole project.
+        </p>
+        <ul>
+          <li><strong>Context block (<code>buildContext(id)</code>):</strong> assembled fresh on every message. Contains student name, program, modality, work hours, all topic scores (with ⚠ on weak ones), upcoming deadlines, study availability, and matched support resources.</li>
+          <li><strong>Opening auto-message:</strong> on student selection, the app automatically sends a first message as the student — "Hi! I'm [name]… Can you give me a study plan for this week?" — so the judge immediately sees a personalised response without typing anything.</li>
+          <li><strong>Receive handler:</strong> Bob's replies are captured via the <code>receive</code> event on the watsonx Assistant instance and rendered as chat bubbles in the custom panel.</li>
+          <li><strong>Built-in launcher hidden:</strong> the Watson Assistant floating launcher is suppressed (<code>--WatsonAssistantChat-launcher-Display: none</code>) so only the team's custom chat UI is visible.</li>
+          <li><strong>Credentials placeholder:</strong> <code>integrationID</code>, <code>serviceInstanceID</code>, and <code>region</code> are left as labelled placeholders in <code>app.js</code> for the team to fill in before the live demo.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-who team">Sub-Task 7</div>
+      <div class="log-body">
+        <span class="log-label">README + 2030 Impact Statement <span class="pill pill-done">Done</span></span>
+        <p>
+          Both written deliverables were drafted with Bob and grounded directly in the case brief,
+          the dataset, and research on early-alert interventions.
+        </p>
+        <ul>
+          <li><code>README.md</code>: five required sections — The Problem, The Solution, The Technical Approach, The Pillar and Statewide Strategy, How IBM Bob Was Used.</li>
+          <li><code>IMPACT_STATEMENT.md</code>: who benefits (students, instructors, advisors, institution), metric and estimated movement (5–10 percentage points on MATH 136 pass rate, ~2,000 additional students passing per year at Ivy Tech scale), 7-step rollout roadmap to 2030, and the one risk to watch.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  
+  <h2><span class="section-num">5</span> Key Design Decisions — Logged</h2>
+
+  <h3>Context injection over system prompts</h3>
+  <p>
+    Rather than relying on a one-time system prompt, the team chose to rebuild the student context
+    block on <em>every single message</em>. This means Bob always has current, complete data even if
+    the conversation has been going for a while. The tradeoff is a slightly larger message payload —
+    accepted as worthwhile at prototype scale.
+  </p>
+
+  <h3>Rule-based matching over ML</h3>
+  <p>
+    The dataset has five students, a fixed list of topics, and a small resource catalogue. Using
+    embeddings or ranking models would have been technically impressive and practically wrong for
+    this problem. Rules are transparent — a student or instructor can read the matching logic and
+    understand exactly why a resource was recommended.
+  </p>
+
+  <h3>The 70% threshold</h3>
+  <p>
+    The team chose 70% as the weak-topic cutoff. This is the standard academic pass threshold and
+    is immediately legible to students and instructors. It also drives both the visual UI (colour
+    coding) and the AI inputs (what Bob is told to focus on).
+  </p>
+
+  <h3>No server, no login</h3>
+  <p>
+    The prototype runs entirely from a single <code>index.html</code>. This was a deliberate
+    simplicity choice: a demo judge can download the repo and open one file. No environment setup,
+    no npm install, no cloud credentials to provision. The only configuration needed is the IBM Bob
+    embed credentials in <code>app.js</code>.
+  </p>
+
+  <h3>Bob's advisory boundary</h3>
+  <p>
+    Both in the product and in the written deliverables, the team was explicit: Bob surfaces
+    recommendations, it does not make decisions. High-stakes questions (e.g. "Should I drop this
+    course?") always include a prompt to speak with an instructor or advisor. The Impact Statement
+    named this the "AI supports, a person decides" principle.
+  </p>
+
+  
+  <h2><span class="section-num">6</span> Files Shipped</h2>
+
+  <ul class="checklist">
+    <li><code>index.html</code> — selector screen + two-column dashboard (cards + chat panel)</li>
+    <li><code>style.css</code> — full visual design: selector grid, dashboard layout, score bars, type badges, availability badges, chat bubbles</li>
+    <li><code>app.js</code> — all data logic (profile, scores, upcoming, resources), context builder, Bob chat integration, watsonx Assistant embed snippet</li>
+    <li><code>README.md</code> — five-section challenge README, grounded in case brief and dataset</li>
+    <li><code>IMPACT_STATEMENT.md</code> — 2030 impact one-pager: who benefits, metric, rollout roadmap, risk</li>
+    <li><code>case_data.js</code> — existing data file (unchanged throughout)</li>
+  </ul>
+
+  
+  <h2><span class="section-num">7</span> The Risk the Team Named</h2>
+
+  <p>
+    The Impact Statement was explicit about the one risk the team considered most serious:
+  </p>
+  <div class="insight">
+    <strong>Risk:</strong> Students follow the coach's recommendations but still fail because the
+    recommendations are only as good as the diagnostic data. If a student's diagnostic scores are
+    incomplete, outdated, or missing — common in the first two weeks of a semester — the coach may
+    recommend the wrong resources or give false reassurance.
+    <br /><br />
+    <strong>Mitigation:</strong> Always surface a "talk to your instructor" fallback. Flag students
+    with no diagnostic data as "data not yet available" rather than showing empty recommendations.
+    Never let the coach tell a student they're on track without at least one human check-in.
+  </div>
+  <p>
+    This mitigation is built into the prototype today — the scores card handles missing data with an
+    explicit empty-state message rather than silently skipping the card.
+  </p>
+
+  
+  <h2><span class="section-num">8</span> What Comes Next — The 2030 Roadmap</h2>
+
+  <table>
+    <thead>
+      <tr><th>Phase</th><th>What's needed</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Pilot — Semester 1</strong></td><td>Deploy at one campus, one math section (~30 students). Measure tutoring engagement rate, exam pass rate, student satisfaction.</td></tr>
+      <tr><td><strong>Data integration — Year 1</strong></td><td>Connect to the Student Information System (SIS) for real enrollment, scores, and schedules. Requires ITS and academic affairs sign-off.</td></tr>
+      <tr><td><strong>IBM Bob scale-up — Year 1–2</strong></td><td>Provision a shared watsonx Assistant instance for all Ivy Tech campuses. Configure per-campus resource data.</td></tr>
+      <tr><td><strong>Expand to all gateway courses — Year 2–3</strong></td><td>Generalise data model beyond MATH 136 to English composition, statistics, and other gateway courses.</td></tr>
+      <tr><td><strong>Faculty &amp; advisor training — Year 2–3</strong></td><td>Train instructors to review coach recommendations. Train advisors to use aggregate data for early identification of at-risk students.</td></tr>
+      <tr><td><strong>Accessibility &amp; equity review — ongoing</strong></td><td>WCAG 2.1 AA compliance, low-bandwidth support, Spanish language availability.</td></tr>
+      <tr><td><strong>Full campus rollout — Year 3–4</strong></td><td>All 19 Ivy Tech campuses. Estimated incremental cost: IBM Bob licensing + 1 FTE for data integration maintenance.</td></tr>
+    </tbody>
+  </table>
+
+  
+  <div class="footer">
+    Made with IBM Bob
+  </div>
+
+</div>
+</body>
+</html>
