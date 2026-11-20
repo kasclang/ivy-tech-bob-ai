@@ -2,7 +2,6 @@
 
 **Ivy Tech IT Challenge 2026 — Case 1: AI Academic Readiness Coach**
 
-> *Know what to study. Know when to get help.*
 
 ---
 

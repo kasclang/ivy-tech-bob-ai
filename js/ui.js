@@ -1,20 +1,9 @@
 /**
  * ui.js — All DOM rendering functions.
  * Pure render helpers — no business logic, no data computation.
+ * Redesigned for compact dashboard layout with integrated calendar and modal.
  */
 const UI = (() => {
-
-  // ── Icons (inline SVG) ──────────────────────────────────────────────────
-  const icons = {
-    user:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
-    calendar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
-    chart:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
-    clock:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-    alert:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-    book:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-    check:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-    info:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-  };
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   function el(tag, attrs = {}, ...children) {
@@ -36,7 +25,15 @@ const UI = (() => {
   function formatDate(isoStr) {
     if (!isoStr) return '';
     const [y, m, d] = isoStr.split('-').map(Number);
-    return new Date(Date.UTC(y, m-1, d, 12)).toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short', timeZone:'UTC' });
+    return new Date(Date.UTC(y, m-1, d, 12)).toLocaleDateString('en-US',
+      { month:'short', day:'numeric', weekday:'short', timeZone:'UTC' });
+  }
+
+  function formatDateShort(isoStr) {
+    if (!isoStr) return '';
+    const [y, m, d] = isoStr.split('-').map(Number);
+    return new Date(Date.UTC(y, m-1, d, 12)).toLocaleDateString('en-US',
+      { month:'short', day:'numeric', timeZone:'UTC' });
   }
 
   function formatMinutes(min) {
@@ -47,13 +44,8 @@ const UI = (() => {
     return `${h} hr ${m} min`;
   }
 
-  function scoreClass(cat) {
-    const map = { attention:'score-attention', developing:'score-developing', strong:'score-strong', 'not-assessed':'score-not-assessed' };
-    return map[cat] || '';
-  }
-  function fillClass(cat) {
-    const map = { attention:'fill-attention', developing:'fill-developing', strong:'fill-strong', 'not-assessed':'fill-not-assessed' };
-    return map[cat] || '';
+  function catScoreClass(cat) {
+    return { attention:'att', developing:'dev', strong:'str', 'not-assessed':'na' }[cat] || 'na';
   }
 
   // ── Render: Student Selector ─────────────────────────────────────────────
@@ -69,69 +61,94 @@ const UI = (() => {
     return sel;
   }
 
-  // ── Render: Student Profile ──────────────────────────────────────────────
+  // ── Render: Student Profile (compact sidebar) ─────────────────────────────
   function renderStudentProfile(student) {
-    const sectionLabels = { '01':'Section 01 (MWF)', '40':'Section 40 (T/Th)', 'OL1':'Section OL1 (Online)' };
-    const rows = [
-      ['Program',       student.program],
-      ['Math course',   student.mathCourse],
-      ['Support course', student.supportCourse],
-      ['Section',       `<span class="section-badge">${sectionLabels[student.section] || student.section || 'Unknown'}</span>`],
-      ['Work hours/wk', student.workHours > 0 ? `${student.workHours} hrs` : 'Not employed'],
-      ['Modality',      student.modality],
-    ];
-    const grid = el('div', { class:'profile-grid' });
-    rows.forEach(([label, val]) => {
-      grid.appendChild(el('span', { class:'profile-label' }, label));
-      const v = el('span', { class:'profile-value', html: String(val) });
-      grid.appendChild(v);
+    const sectionLabels = {
+      '01':  'Section 01 — M/W',
+      '40':  'Section 40 — T/Th',
+      'OL1': 'Section OL1 — Online',
+    };
+    const frag = document.createDocumentFragment();
+    const nameEl = el('div', { class:'student-name-display' }, student.firstName);
+    const metaEl = el('div', { class:'student-meta' }, student.program);
+    const pillEl = el('div', {});
+    pillEl.appendChild(el('span', { class:'section-pill' }, sectionLabels[student.section] || student.section || ''));
+    frag.appendChild(nameEl);
+    frag.appendChild(metaEl);
+    frag.appendChild(pillEl);
+
+    const grid = el('div', { class:'profile-mini', style:'margin-top:.5rem' });
+    [
+      ['Math', student.mathCourse],
+      ['Support', student.supportCourse],
+      ['Work hrs', student.workHours > 0 ? `${student.workHours}/wk` : 'None'],
+      ['Modality', student.modality],
+    ].forEach(([label, val]) => {
+      grid.appendChild(el('span', { class:'pl' }, label));
+      grid.appendChild(el('span', { class:'pv' }, val));
     });
-    return grid;
+    frag.appendChild(grid);
+    return frag;
   }
 
-  // ── Render: Academic Readiness ───────────────────────────────────────────
-  function renderAcademicReadiness(prioritizedTopics) {
-    const categories = {
-      attention:    { label:'Needs Immediate Attention', topics:[] },
-      developing:   { label:'Developing Proficiency',   topics:[] },
-      strong:       { label:'Strong Foundation',         topics:[] },
-      'not-assessed':{ label:'Not Yet Assessed',         topics:[] },
-    };
-    prioritizedTopics.forEach(t => { (categories[t.category]?.topics || categories['not-assessed'].topics).push(t); });
-
+  // ── Render: Top 3 Next Steps ──────────────────────────────────────────────
+  function renderNextSteps(prioritizedTopics, weekNum, assignmentCalendar, plan) {
+    // Return a DocumentFragment so the cards land directly inside the outer
+    // #next-steps-body div (which owns the CSS grid), not inside a nested wrapper.
     const container = document.createDocumentFragment();
+    if (!prioritizedTopics.length) {
+      container.appendChild(el('div', { class:'empty-state' }, 'No priorities computed yet.'));
+      return container;
+    }
 
-    Object.entries(categories).forEach(([catKey, cat]) => {
-      if (!cat.topics.length) return;
-      const hdr = el('div', { class:'topic-category-header' }, cat.label);
-      container.appendChild(hdr);
+    // Build up to 3 steps from the top prioritized topics
+    const weekAssignments = assignmentCalendar.filter(a => a.week === weekNum);
+    const steps = [];
 
-      cat.topics.forEach(t => {
-        const row = el('div', { class:'topic-row' });
-        const header = el('div', { class:'topic-row-header' });
-        header.appendChild(el('span', { class:'topic-name' }, t.topic));
-        const scoreEl = el('span', { class:`topic-score-num ${scoreClass(t.category)}` });
-        scoreEl.textContent = t.score !== null ? `${t.score}%` : 'Not assessed';
-        header.appendChild(scoreEl);
-        row.appendChild(header);
+    prioritizedTopics.slice(0, 5).forEach(t => {
+      if (steps.length >= 3) return;
 
-        const bg = el('div', { class:'progress-bar-bg', role:'progressbar', 'aria-valuenow': t.score ?? 0, 'aria-valuemin':'0', 'aria-valuemax':'100' });
-        const fill = el('div', { class:`progress-bar-fill ${fillClass(t.category)}` });
-        fill.style.width = `${t.score ?? 50}%`;
-        bg.appendChild(fill);
-        row.appendChild(bg);
-
-        if (t.score !== null) {
-          row.appendChild(el('div', { class:'score-source text-muted' }, 'Source: Diagnostic assessment, Weeks 1–4'));
-        }
-
-        container.appendChild(row);
+      // Find relevant deadline
+      const related = weekAssignments.find(a => {
+        const tl = t.topic.toLowerCase();
+        const al = a.topic.toLowerCase();
+        return al === tl || al.includes(tl) || tl.includes(al);
       });
+
+      let metaLine = '';
+      if (related) {
+        metaLine = `${related.type}: ${related.item} · due ${formatDateShort(related.dueDate)}`;
+      } else if (plan && plan.sessions) {
+        const sess = plan.sessions.find(s => s.topic === t.topic);
+        if (sess) metaLine = `Study session: ${sess.day} ${sess.startTime}–${sess.endTime}`;
+      }
+
+      steps.push({ topic: t.topic, explanation: t.explanation, meta: metaLine, priority: t.priority });
     });
+
+    // If fewer than 3 topic steps, fill with a study reminder or tutor step
+    if (steps.length < 3 && plan && plan.sessions && plan.sessions.length) {
+      steps.push({
+        topic: 'Study plan',
+        explanation: 'Review your study sessions in the Weekly Planner below.',
+        meta: `${plan.sessions.length} session(s) scheduled this week`,
+        priority: 0,
+      });
+    }
+
+    steps.slice(0, 3).forEach((step, i) => {
+      const card = el('div', { class:'next-step-card' });
+      card.appendChild(el('div', { class:'step-num' }, `Priority ${i + 1}`));
+      card.appendChild(el('div', { class:'step-title' }, step.topic));
+      card.appendChild(el('div', { class:'step-explain' }, step.explanation));
+      if (step.meta) card.appendChild(el('div', { class:'step-meta' }, step.meta));
+      container.appendChild(card);
+    });
+
     return container;
   }
 
-  // ── Render: Week date range label ────────────────────────────────────────
+  // ── Render: Week label ───────────────────────────────────────────────────
   function renderWeekLabel(weekNum) {
     const start = DataLoader.weekStartDate(weekNum);
     const end   = new Date(start);
@@ -142,241 +159,661 @@ const UI = (() => {
     return `Week ${weekNum} · ${startStr}–${endStr}`;
   }
 
-  // ── Render: Weekly Calendar ──────────────────────────────────────────────
-  function renderWeeklyCalendar(sessions, weekNum, completedSet, onSessionClick) {
-    const weekStart = DataLoader.weekStartDate(weekNum);
+  // ── Render: Month Calendar ────────────────────────────────────────────────
+  /**
+   * Builds a full-month calendar grid.
+   * - Shows all days in the month that contains the selected week.
+   * - Highlights the selected planning week with a background tint.
+   * - Places study sessions AND all semester assignments on their real dates.
+   * - Below the month grid, renders a compact "Selected Week Details" strip.
+   * - Clicking any event opens the detail modal.
+   *
+   * @param {array}  sessions          — scheduled study sessions for selectedWeek
+   * @param {array}  assignmentCalendar — full semester assignment calendar
+   * @param {number} weekNum           — selected semester week (1–12)
+   * @param {Set}    completedSet
+   * @param {function} onEventClick    — callback({ type, data })
+   */
+  function renderMonthCalendar(sessions, assignmentCalendar, weekNum, completedSet, onEventClick) {
+    // ── 1. Derive the month to display ───────────────────────────────────────
+    const selectedWeekMonday = DataLoader.weekStartDate(weekNum);
+    // Use the month that contains the Monday of the selected week
+    const displayYear  = selectedWeekMonday.getUTCFullYear();
+    const displayMonth = selectedWeekMonday.getUTCMonth(); // 0-indexed
 
-    const grid = el('div', { class:'calendar-grid', role:'grid' });
+    // First and last days of the display month
+    const monthStart = new Date(Date.UTC(displayYear, displayMonth, 1, 12));
+    const monthEnd   = new Date(Date.UTC(displayYear, displayMonth + 1, 0, 12)); // last day
+
+    // ── 2. Build a date-indexed event map covering the full semester ──────────
+    // Map: "YYYY-MM-DD" → [eventObj, ...]
+    const eventsByDate = {};
+    function addEvent(dateStr, evt) {
+      if (!eventsByDate[dateStr]) eventsByDate[dateStr] = [];
+      eventsByDate[dateStr].push(evt);
+    }
+
+    // Study sessions (belong to selectedWeek)
+    sessions.forEach(sess => {
+      const dateStr = DataLoader.dateForWeekday(selectedWeekMonday, sess.day);
+      if (dateStr) addEvent(dateStr, { type:'session', data: sess });
+    });
+
+    // All semester assignments/exams (all weeks, so they appear across the whole month)
+    assignmentCalendar.forEach(a => {
+      addEvent(a.dueDate, { type:'deadline', data: a });
+    });
+
+    // ── 3. Determine selected week date range ─────────────────────────────────
+    const selWeekStart = selectedWeekMonday;
+    const selWeekEndDate = new Date(selWeekStart);
+    selWeekEndDate.setUTCDate(selWeekEndDate.getUTCDate() + 6);
+    const selWeekStartStr = selWeekStart.toISOString().slice(0, 10);
+    const selWeekEndStr   = selWeekEndDate.toISOString().slice(0, 10);
+
+    function isInSelectedWeek(dateStr) {
+      return dateStr >= selWeekStartStr && dateStr <= selWeekEndStr;
+    }
+
+    // ── 4. Build grid: find the leading Sunday before monthStart ─────────────
+    // We use Sun=0 … Sat=6 for the standard calendar grid start
+    const dowOfMonthStart = monthStart.getUTCDay(); // 0=Sun
+    const gridStart = new Date(monthStart);
+    gridStart.setUTCDate(gridStart.getUTCDate() - dowOfMonthStart);
+
+    // We always render 6 weeks (42 cells) to keep a consistent height
+    const totalCells = 42;
+
+    // ── 5. Build month header row ─────────────────────────────────────────────
+    const monthName = monthStart.toLocaleDateString('en-US', { month:'long', year:'numeric', timeZone:'UTC' });
+    const wrapper = el('div', {});
+
+    // Month label above the grid
+    const monthLabel = el('div', {
+      style: 'font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem',
+    });
+    monthLabel.textContent = monthName;
+    // Show selected week label beside month name
+    const wkBadge = el('span', { style:'font-size:.72rem;font-weight:600;background:var(--accent);color:#fff;padding:.1rem .5rem;border-radius:999px' });
+    wkBadge.textContent = `Week ${weekNum} highlighted`;
+    monthLabel.appendChild(wkBadge);
+    wrapper.appendChild(monthLabel);
+
+    // ── 6. Build the calendar grid ────────────────────────────────────────────
+    const cal = el('div', { class:'month-calendar', role:'grid', 'aria-label':`Calendar for ${monthName}` });
+
+    // Day-of-week header (Sun–Sat)
+    const dowLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dowRow = el('div', { class:'month-dow-row', role:'row' });
+    dowLabels.forEach(d => {
+      dowRow.appendChild(el('div', { class:'month-dow-cell', role:'columnheader' }, d));
+    });
+    cal.appendChild(dowRow);
+
+    // Build 6 week rows
+    for (let week = 0; week < 6; week++) {
+      const rowStart = new Date(gridStart);
+      rowStart.setUTCDate(rowStart.getUTCDate() + week * 7);
+
+      // Determine if this 7-day row overlaps the selected week
+      const rowEnd = new Date(rowStart);
+      rowEnd.setUTCDate(rowEnd.getUTCDate() + 6);
+      const rowStartStr = rowStart.toISOString().slice(0, 10);
+      const rowEndStr   = rowEnd.toISOString().slice(0, 10);
+      // Row is "selected week" if it overlaps [selWeekStart, selWeekEnd]
+      const isSelWeekRow = rowStartStr <= selWeekEndStr && rowEndStr >= selWeekStartStr;
+
+      const weekRow = el('div', {
+        class: `month-week-row${isSelWeekRow ? ' selected-week' : ''}`,
+        role: 'row',
+      });
+
+      for (let dow = 0; dow < 7; dow++) {
+        const cellDate = new Date(rowStart);
+        cellDate.setUTCDate(cellDate.getUTCDate() + dow);
+        const cellDateStr = cellDate.toISOString().slice(0, 10);
+        const cellDay = cellDate.getUTCDate();
+        const isThisMonth = cellDate.getUTCMonth() === displayMonth;
+
+        const cell = el('div', {
+          class: `month-day-cell${!isThisMonth ? ' other-month' : ''}`,
+          role: 'gridcell',
+          'aria-label': cellDateStr,
+        });
+
+        // Date number
+        const dateNum = el('div', { class:'mdc-date' }, String(cellDay));
+        cell.appendChild(dateNum);
+
+        // Events for this date
+        const dayEvts = eventsByDate[cellDateStr] || [];
+        const evtsContainer = el('div', { class:'month-events' });
+
+        dayEvts.forEach(evt => {
+          let btn;
+          if (evt.type === 'session') {
+            const sess = evt.data;
+            const done = completedSet.has(sess.id);
+            btn = el('button', {
+              class: `cal-evt cal-evt-study${done ? ' completed' : ''}`,
+              type: 'button',
+              title: `${sess.topic} · ${sess.startTime}–${sess.endTime}`,
+            });
+            const label = `${sess.startTime} ${sess.topic.length > 14 ? sess.topic.slice(0,14)+'…' : sess.topic}`;
+            btn.textContent = label;
+            btn.addEventListener('click', () => onEventClick(evt));
+          } else {
+            // deadline
+            const a = evt.data;
+            const isExam = a.type === 'Exam' || a.type === 'Quiz';
+            btn = el('button', {
+              class: `cal-evt ${isExam ? 'cal-evt-exam' : 'cal-evt-assign'}`,
+              type: 'button',
+              title: `${a.item} · ${a.course} · ${a.points} pts`,
+            });
+            btn.textContent = a.item.length > 18 ? a.item.slice(0,18)+'…' : a.item;
+            btn.addEventListener('click', () => onEventClick(evt));
+          }
+          evtsContainer.appendChild(btn);
+        });
+
+        cell.appendChild(evtsContainer);
+        weekRow.appendChild(cell);
+      }
+      cal.appendChild(weekRow);
+    }
+
+    wrapper.appendChild(cal);
+
+    // ── 7. Selected Week Details strip ────────────────────────────────────────
+    const strip = buildWeekDetailStrip(sessions, assignmentCalendar, weekNum,
+      selWeekStartStr, completedSet, onEventClick);
+    wrapper.appendChild(strip);
+
+    return wrapper;
+  }
+
+  /**
+   * Builds the "Selected Week Details" strip shown below the month calendar.
+   * Shows a compact 7-column grid for the selected week only.
+   */
+  function buildWeekDetailStrip(sessions, assignmentCalendar, weekNum,
+      selWeekStartStr, completedSet, onEventClick) {
+
+    const selWeekStart = DataLoader.weekStartDate(weekNum);
+
+    // Format the week date range
+    const weekEnd = new Date(selWeekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const fmtOpts = { month:'short', day:'numeric', timeZone:'UTC' };
+    const startLabel = selWeekStart.toLocaleDateString('en-US', fmtOpts);
+    const endLabel   = weekEnd.toLocaleDateString('en-US', { ...fmtOpts, year:'numeric' });
+
+    const strip = el('div', { class:'week-detail-strip' });
+    const hdr = el('div', { class:'week-detail-header' });
+    hdr.appendChild(el('span', {}, `📅 Week ${weekNum} — ${startLabel}–${endLabel}`));
+    const statEl = el('span', { style:'font-size:.72rem;opacity:.85' });
+    statEl.textContent = sessions.length
+      ? `${sessions.length} study session(s) · click any event for details`
+      : 'No study sessions this week · click assignments for details';
+    hdr.appendChild(statEl);
+    strip.appendChild(hdr);
+
+    // 7-column body, one column per day Mon–Sun
+    const body = el('div', { class:'week-detail-body' });
+    const weekAssignments = assignmentCalendar.filter(a => a.week === weekNum);
 
     CONFIG.DAY_ORDER.forEach(day => {
-      const dateStr = DataLoader.dateForWeekday(weekStart, day);
-      const daySessions = sessions.filter(s => s.day === day);
-      const hasAny = daySessions.length > 0;
+      const dateStr = DataLoader.dateForWeekday(selWeekStart, day);
+      const [, m, d] = (dateStr || '').split('-').map(Number);
 
-      const cell = el('div', { class:`cal-day${hasAny ? ' has-sessions' : ''}`, role:'gridcell' });
-      cell.appendChild(el('div', { class:'cal-day-name' }, day.slice(0, 3)));
+      const col = el('div', { class:'wds-col' });
+      col.appendChild(el('div', { class:'wds-col-head' }, `${day.slice(0,3)} ${m}/${d}`));
 
-      const [, m, d] = dateStr.split('-');
-      cell.appendChild(el('div', { class:'cal-day-date' }, `${Number(m)}/${Number(d)}`));
-
-      daySessions.forEach(sess => {
+      // Study sessions this day
+      sessions.filter(s => s.day === day).forEach(sess => {
         const done = completedSet.has(sess.id);
-        const chip = el('button', {
-          class: `cal-session-chip${done ? ' completed' : ''}`,
-          'data-session-id': sess.id,
+        const btn = el('button', {
+          class: `cal-evt cal-evt-study${done ? ' completed' : ''}`,
           type: 'button',
           title: `${sess.topic} · ${sess.startTime}–${sess.endTime}`,
         });
-        chip.textContent = `${sess.startTime} ${sess.topic.length > 14 ? sess.topic.slice(0,14)+'…' : sess.topic}`;
-        chip.addEventListener('click', () => onSessionClick(sess.id));
-        cell.appendChild(chip);
+        btn.textContent = `${sess.startTime} ${sess.topic.length > 13 ? sess.topic.slice(0,13)+'…' : sess.topic}`;
+        btn.addEventListener('click', () => onEventClick({ type:'session', data: sess }));
+        col.appendChild(btn);
       });
 
-      grid.appendChild(cell);
-    });
-
-    return grid;
-  }
-
-  // ── Render: Session List ─────────────────────────────────────────────────
-  function renderSessionList(sessions, completedSet, onToggle) {
-    if (!sessions.length) return el('div', { class:'empty-state' }, 'No study sessions planned for this week.');
-
-    const list = el('div', { class:'session-list' });
-    sessions.forEach(sess => {
-      const done = completedSet.has(sess.id);
-      const card = el('div', { class:`session-card${done ? ' completed' : ''}`, id:`sc-${sess.id}` });
-
-      const checkWrap = el('div', { class:'session-check' });
-      const cb = el('input', {
-        type: 'checkbox',
-        id: `cb-${sess.id}`,
-        checked: done,
-        'aria-label': `Mark "${sess.topic}" session complete`,
+      // Assignment deadlines this date
+      weekAssignments.filter(a => a.dueDate === dateStr).forEach(a => {
+        const isExam = a.type === 'Exam' || a.type === 'Quiz';
+        const btn = el('button', {
+          class: `cal-evt ${isExam ? 'cal-evt-exam' : 'cal-evt-assign'}`,
+          type: 'button',
+          title: `${a.item} · ${a.course}`,
+        });
+        btn.textContent = a.item.length > 18 ? a.item.slice(0,18)+'…' : a.item;
+        btn.addEventListener('click', () => onEventClick({ type:'deadline', data: a }));
+        col.appendChild(btn);
       });
-      cb.addEventListener('change', () => onToggle(sess.id, cb.checked));
-      checkWrap.appendChild(cb);
-      card.appendChild(checkWrap);
 
-      const info = el('div', { class:'session-info' });
-      info.appendChild(el('div', { class:'session-time' }, `${sess.day} · ${sess.startTime}–${sess.endTime}`));
-      info.appendChild(el('div', { class:'session-topic' }, sess.topic));
-      info.appendChild(el('div', { class:'session-activity' }, sess.activity));
-      info.appendChild(el('div', { class:'session-reason' }, sess.reason));
-      card.appendChild(info);
-
-      card.appendChild(el('div', { class:'session-duration-tag' }, formatMinutes(sess.durationMin)));
-
-      list.appendChild(card);
+      body.appendChild(col);
     });
-    return list;
+    strip.appendChild(body);
+    return strip;
   }
 
-  // ── Render: Deadlines ────────────────────────────────────────────────────
-  function renderDeadlines(assignments, currentWeek) {
-    if (!assignments.length) return el('div', { class:'empty-state' }, 'No upcoming deadlines found.');
+  // Keep old name as alias for backward compatibility with any test references
+  const renderIntegratedCalendar = renderMonthCalendar;
 
-    // Show current week + 2 weeks ahead
-    const visible = assignments.filter(a => a.week >= currentWeek && a.week <= currentWeek + 2);
-    if (!visible.length) return el('div', { class:'empty-state' }, 'No deadlines in the next 3 weeks.');
+  // ── Render: Academic Readiness (compact 2-col grid) ──────────────────────
+  function renderAcademicReadiness(prioritizedTopics) {
+    const container = document.createDocumentFragment();
+    const grid = el('div', { id:'readiness-grid' });
 
-    const list = el('div', { class:'deadline-list' });
+    prioritizedTopics.forEach(t => {
+      const sc = catScoreClass(t.category);
+      const card = el('div', { class:`topic-card cat-${t.category}` });
+
+      const hdr = el('div', { class:'tc-header' });
+      hdr.appendChild(el('span', { class:'tc-name' }, t.topic));
+      const scoreEl = el('span', { class:`tc-score ${sc}` });
+      scoreEl.textContent = t.score !== null ? `${t.score}%` : 'N/A';
+      hdr.appendChild(scoreEl);
+      card.appendChild(hdr);
+
+      const barBg = el('div', { class:'tc-bar-bg', role:'progressbar', 'aria-valuenow': t.score ?? 0, 'aria-valuemin':'0', 'aria-valuemax':'100', 'aria-label': t.topic });
+      const fill = el('div', { class:`tc-bar-fill ${sc}` });
+      fill.style.width = `${t.score ?? 50}%`;
+      barBg.appendChild(fill);
+      card.appendChild(barBg);
+
+      const catLabels = {
+        attention: 'Needs attention',
+        developing: 'Developing',
+        strong: 'Strong',
+        'not-assessed': 'Not assessed',
+      };
+      card.appendChild(el('div', { class:'tc-category' }, catLabels[t.category] || ''));
+      grid.appendChild(card);
+    });
+
+    if (!prioritizedTopics.length) {
+      grid.appendChild(el('div', { class:'empty-state' }, 'No diagnostic data available.'));
+    }
+
+    container.appendChild(grid);
+    return container;
+  }
+
+  // ── Render: Compact Deadlines ─────────────────────────────────────────────
+  function renderDeadlines(assignments, currentWeek, onDeadlineClick) {
+    const visible = assignments
+      .filter(a => a.week >= currentWeek && a.week <= currentWeek + 2)
+      .slice(0, 7);
+
+    if (!visible.length) return el('div', { class:'empty-state' }, 'No upcoming deadlines.');
+
+    const list = el('div', { class:'deadline-compact-list' });
     visible.forEach(a => {
       const isThisWeek = a.week === currentWeek;
-      const card = el('div', { class:`deadline-card${isThisWeek ? ' this-week' : ''}` });
+      const typeLower  = a.type.toLowerCase();
+      const item = el('div', {
+        class: `dl-item${isThisWeek ? ' this-week' : ''}`,
+        role: 'button',
+        tabindex: '0',
+        'aria-label': `${a.item}, due ${a.dueDate}`,
+      });
 
-      const typeClass = { Exam:'type-exam', Quiz:'type-quiz', Homework:'type-homework', Practice:'type-practice' }[a.type] || 'type-homework';
-      const typeTag = el('span', { class:`deadline-type-tag ${typeClass}` }, a.type);
-      card.appendChild(typeTag);
+      const dot = el('div', { class:`dl-type-dot dl-dot-${typeLower}` });
+      item.appendChild(dot);
 
-      const info = el('div', { class:'deadline-info' });
-      info.appendChild(el('div', { class:'deadline-name' }, a.item));
-      info.appendChild(el('div', { class:'deadline-meta' }, `${a.course} · ${a.topic} · ${a.points} pts`));
-      card.appendChild(info);
+      const nameEl = el('span', { class:'dl-name' });
+      nameEl.textContent = a.item.length > 30 ? a.item.slice(0,30)+'…' : a.item;
+      item.appendChild(nameEl);
 
-      const dateWrap = el('div', { class:'deadline-date' });
-      dateWrap.textContent = formatDate(a.dueDate);
-      if (isThisWeek) dateWrap.appendChild(el('span', { class:'this-week-badge', style:'margin-left:.4rem' }, 'This week'));
-      card.appendChild(dateWrap);
+      item.appendChild(el('span', { class:'dl-date' }, formatDateShort(a.dueDate)));
 
-      list.appendChild(card);
+      if (isThisWeek) {
+        item.appendChild(el('span', { class:'dl-week-tag' }, 'This week'));
+      }
+
+      item.addEventListener('click', () => onDeadlineClick && onDeadlineClick(a));
+      item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDeadlineClick && onDeadlineClick(a); } });
+      list.appendChild(item);
     });
     return list;
   }
 
-  // ── Render: Resource Recommendations ────────────────────────────────────
-  function renderResources(recommendations) {
+  // ── Render: Resource Center ───────────────────────────────────────────────
+  function renderResources(recommendations, onResourceClick, activeFilter) {
     if (!recommendations.length) return el('div', { class:'empty-state' }, 'No matching resources found.');
 
-    const list = el('div', { class:'resource-list' });
-    recommendations.slice(0, 8).forEach(rec => {
-      const { resource, availFit, hasConflict, sectionFit, whySelected, availNote, conflictNote, sectionNote, scheduleNote } = rec;
-      const unavail = availFit === 'unavailable';
+    const container = document.createDocumentFragment();
 
-      const card = el('div', { class:`resource-card${unavail ? ' unavailable' : ''}` });
-
-      const header = el('div', { class:'resource-header' });
-      header.appendChild(el('span', { class:'resource-name' }, resource.name));
-
-      const badges = el('div', { class:'resource-badges' });
-      // Availability badge
-      if (availFit === 'available') badges.appendChild(el('span', { class:'badge badge-green' }, '✓ Fits schedule'));
-      else if (availFit === 'on-demand') badges.appendChild(el('span', { class:'badge badge-blue' }, 'On demand'));
-      else badges.appendChild(el('span', { class:'badge badge-amber' }, 'Schedule conflict'));
-      // Modality badge
-      badges.appendChild(el('span', { class:`badge ${resource.modality === 'Online' ? 'badge-blue' : 'badge-gray'}` }, resource.modality));
-      // Type badge
-      badges.appendChild(el('span', { class:'badge badge-gray' }, resource.type));
-      header.appendChild(badges);
-      card.appendChild(header);
-
-      card.appendChild(el('div', { class:'resource-desc' }, resource.description));
-      card.appendChild(el('div', { class:'resource-why' }, `📌 ${whySelected}`));
-
-      const notes = el('div', { class:'resource-notes' });
-      notes.appendChild(el('div', {}, `📍 ${resource.location}`));
-      notes.appendChild(el('div', {}, `🕐 ${scheduleNote}`));
-      notes.appendChild(el('div', {}, availNote));
-      if (conflictNote) notes.appendChild(el('div', { class:'note-warn' }, `⚠ ${conflictNote}`));
-      if (sectionNote)  notes.appendChild(el('div', { class:'note-warn' }, `⚠ ${sectionNote}`));
-      notes.appendChild(el('div', { class:'text-muted', style:'font-style:italic;margin-top:.2rem' }, 'Schedule shown is from dataset only. No appointment is booked.'));
-      card.appendChild(notes);
-
-      list.appendChild(card);
+    // Filter bar
+    const filters = ['All', 'Available', 'Online', 'Tutoring', 'Office hours', 'Video / Practice'];
+    const filterBar = el('div', { class:'resource-filters', role:'group', 'aria-label':'Filter resources' });
+    filters.forEach(f => {
+      const btn = el('button', {
+        class: `filter-btn${(!activeFilter || activeFilter === f) && f === 'All' ? ' active' : (activeFilter === f ? ' active' : '')}`,
+        type: 'button',
+        'data-filter': f,
+        'aria-pressed': (activeFilter || 'All') === f ? 'true' : 'false',
+      });
+      btn.textContent = f;
+      filterBar.appendChild(btn);
     });
-    return list;
+    container.appendChild(filterBar);
+
+    // Apply filter
+    const curFilter = activeFilter || 'All';
+    const filtered = recommendations.filter(rec => {
+      if (curFilter === 'All') return true;
+      if (curFilter === 'Available') return rec.availFit !== 'unavailable';
+      if (curFilter === 'Online') return rec.resource.modality === 'Online';
+      if (curFilter === 'Tutoring') return rec.resource.type === 'Tutoring';
+      if (curFilter === 'Office hours') return rec.resource.type === 'Office hours';
+      if (curFilter === 'Video / Practice') return ['Video','Practice set'].includes(rec.resource.type);
+      return true;
+    });
+
+    // Top 3 featured cards
+    const top3 = filtered.slice(0, 3);
+    const topGrid = el('div', { class:'resource-center-top' });
+    top3.forEach(rec => {
+      topGrid.appendChild(renderResourceCard(rec, onResourceClick));
+    });
+    container.appendChild(topGrid);
+
+    // Expandable "all resources" list
+    if (filtered.length > 3) {
+      const details = el('details', {});
+      const summary = el('summary', { style:'cursor:pointer;font-size:.78rem;font-weight:600;color:var(--accent);padding:.3rem 0;user-select:none' });
+      summary.textContent = `▶ See all ${filtered.length} matching resources`;
+      details.appendChild(summary);
+
+      const allList = el('div', { class:'all-resources-list', style:'margin-top:.5rem' });
+      filtered.slice(3).forEach(rec => {
+        const { resource, availFit, whySelected } = rec;
+        const row = el('div', {
+          class: `all-res-row${availFit === 'unavailable' ? ' unavail' : ''}`,
+          role:'button', tabindex:'0',
+        });
+
+        // Availability dot
+        const dot = el('div', { style:`width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${availFit === 'available' ? '#10b981' : availFit === 'on-demand' ? '#1a56b0' : '#d97706'}` });
+        row.appendChild(dot);
+        row.appendChild(el('span', { class:'all-res-name' }, resource.name));
+        row.appendChild(el('span', { class:'all-res-type' }, resource.type));
+        const availLabel = availFit === 'available' ? '✓ Fits schedule' : availFit === 'on-demand' ? 'On demand' : 'Schedule conflict';
+        row.appendChild(el('span', { style:'font-size:.68rem;color:var(--muted)' }, availLabel));
+
+        row.addEventListener('click', () => onResourceClick && onResourceClick(rec));
+        row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onResourceClick && onResourceClick(rec); } });
+        allList.appendChild(row);
+      });
+      details.appendChild(allList);
+      container.appendChild(details);
+    }
+
+    if (!filtered.length) {
+      container.appendChild(el('div', { class:'empty-state' }, 'No resources match this filter.'));
+    }
+
+    return container;
   }
 
-  // ── Render: Progress Summary ─────────────────────────────────────────────
-  function renderProgressSummary(sessions, completedSet) {
-    const totalSessions  = sessions.length;
-    const doneSessions   = sessions.filter(s => completedSet.has(s.id)).length;
-    const totalMin       = sessions.reduce((s, x) => s + x.durationMin, 0);
-    const doneMin        = sessions.filter(s => completedSet.has(s.id)).reduce((s, x) => s + x.durationMin, 0);
-    const pct            = totalMin > 0 ? Math.round(doneMin / totalMin * 100) : 0;
+  function renderResourceCard(rec, onResourceClick) {
+    const { resource, availFit, hasConflict, sectionFit, whySelected, availNote, conflictNote, sectionNote, scheduleNote } = rec;
+    const fitClass = availFit === 'available' ? 'fit-available' : availFit === 'on-demand' ? 'fit-on-demand' : 'fit-unavailable';
 
-    const grid = el('div', { class:'progress-summary-grid' });
+    const card = el('div', { class:`res-card ${fitClass}`, role:'button', tabindex:'0', style:'cursor:pointer' });
+
+    const nameLine = el('div', { class:'res-card-name' }, resource.name);
+    card.appendChild(nameLine);
+
+    const badges = el('div', { class:'res-card-badges' });
+    if (availFit === 'available') badges.appendChild(el('span', { class:'badge badge-green' }, '✓ Fits schedule'));
+    else if (availFit === 'on-demand') badges.appendChild(el('span', { class:'badge badge-blue' }, 'On demand'));
+    else badges.appendChild(el('span', { class:'badge badge-amber' }, 'Time conflict'));
+    badges.appendChild(el('span', { class:`badge ${resource.modality === 'Online' ? 'badge-blue' : 'badge-gray'}` }, resource.modality));
+    badges.appendChild(el('span', { class:'badge badge-gray' }, resource.type));
+    card.appendChild(badges);
+
+    card.appendChild(el('div', { class:'res-card-why' }, whySelected));
+
+    if (resource.start) {
+      card.appendChild(el('div', { class:'res-card-sched' }, scheduleNote));
+    }
+
+    if (resource.location) {
+      card.appendChild(el('div', { class:'res-card-location' }, `📍 ${resource.location}`));
+    }
+
+    if (hasConflict || !sectionFit) {
+      card.appendChild(el('div', { class:'res-card-warning' }, hasConflict ? '⚠ Conflicts with class meeting' : '⚠ Different section'));
+    }
+
+    card.appendChild(el('div', { class:'res-card-no-book' }, 'No appointment booked — contact directly.'));
+
+    card.addEventListener('click', () => onResourceClick && onResourceClick(rec));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onResourceClick && onResourceClick(rec); } });
+    return card;
+  }
+
+  // ── Render: Progress Summary (compact, sidebar) ───────────────────────────
+  function renderProgressSummary(sessions, completedSet) {
+    const totalSessions = sessions.length;
+    const doneSessions  = sessions.filter(s => completedSet.has(s.id)).length;
+    const totalMin      = sessions.reduce((s, x) => s + x.durationMin, 0);
+    const doneMin       = sessions.filter(s => completedSet.has(s.id)).reduce((s, x) => s + x.durationMin, 0);
+    const pct           = totalMin > 0 ? Math.round(doneMin / totalMin * 100) : 0;
+
+    const frag = document.createDocumentFragment();
+
+    const grid = el('div', { class:'progress-compact' });
     [
       [formatMinutes(totalMin), 'Planned'],
-      [formatMinutes(doneMin),  'Completed'],
-      [`${doneSessions}/${totalSessions}`, 'Sessions done'],
-      [`${pct}%`,               'Progress'],
+      [formatMinutes(doneMin),  'Done'],
+      [`${doneSessions}/${totalSessions}`, 'Sessions'],
+      [`${pct}%`, 'Progress'],
     ].forEach(([num, lbl]) => {
-      const stat = el('div', { class:'progress-stat' });
-      stat.appendChild(el('div', { class:'stat-num' }, num));
-      stat.appendChild(el('div', { class:'stat-label' }, lbl));
+      const stat = el('div', { class:'prog-stat' });
+      stat.appendChild(el('div', { class:'ps-num' }, num));
+      stat.appendChild(el('div', { class:'ps-lbl' }, lbl));
       grid.appendChild(stat);
     });
+    frag.appendChild(grid);
 
-    const barBg = el('div', { class:'progress-bar-week', role:'progressbar', 'aria-valuenow': pct, 'aria-valuemin':'0', 'aria-valuemax':'100' });
-    barBg.appendChild(Object.assign(el('div', { class:'progress-bar-week-fill' }), { style: `width:${pct}%` }));
+    const barBg = el('div', { class:'progress-bar-thin', role:'progressbar', 'aria-valuenow': pct, 'aria-valuemin':'0', 'aria-valuemax':'100' });
+    barBg.appendChild(Object.assign(el('div', { class:'progress-bar-thin-fill' }), { style: `width:${pct}%` }));
+    frag.appendChild(barBg);
 
-    const disclaimer = el('div', { class:'progress-disclaimer' },
-      'Marking a session complete confirms you studied — it does not automatically verify academic mastery.'
-    );
-
-    const wrap = document.createDocumentFragment();
-    wrap.appendChild(grid);
-    wrap.appendChild(barBg);
-    wrap.appendChild(el('div', { class:'mt-sm' }));
-    wrap.appendChild(disclaimer);
-    return wrap;
+    frag.appendChild(el('div', { class:'progress-disclaimer-sm' },
+      'Completing a session confirms you studied — not automatic mastery.'
+    ));
+    return frag;
   }
 
   // ── Render: Explainability panel ─────────────────────────────────────────
   function renderExplainPanel(student, weekNum, prioritizedTopics, targetMin) {
     const body = el('div', { class:'explain-body' });
-
     body.innerHTML = `
       <h3>How your plan was created</h3>
-      <p>Your plan is built from four types of information: <strong>diagnostic scores</strong> from your first four weeks, the <strong>Week ${weekNum} curriculum</strong>, <strong>upcoming assessments</strong>, and your <strong>recorded study availability</strong>. No external AI model was used — recommendations follow a fixed set of transparent rules.</p>
-
+      <p>Built from <strong>diagnostic scores</strong> (Weeks 1–4), the <strong>Week ${weekNum} curriculum</strong>, <strong>upcoming assessments</strong>, and your <strong>recorded availability</strong>. No external AI model — transparent rule-based recommendations only.</p>
       <h3>Topic priority formula</h3>
-      <p>Each topic receives a priority score between 0 and 1 based on:</p>
-      <ul style="margin-left:1.2rem">
+      <ul>
         <li><strong>${Math.round(CONFIG.priorityWeights.diagnosticWeakness*100)}%</strong> — how low your diagnostic score was</li>
-        <li><strong>${Math.round(CONFIG.priorityWeights.weekRelevance*100)}%</strong> — whether the topic is in this week's coursework</li>
-        <li><strong>${Math.round(CONFIG.priorityWeights.examProximity*100)}%</strong> — whether an exam or quiz covers it within 2 weeks</li>
-        <li><strong>${Math.round(CONFIG.priorityWeights.homeworkProximity*100)}%</strong> — whether a homework is due this week</li>
+        <li><strong>${Math.round(CONFIG.priorityWeights.weekRelevance*100)}%</strong> — topic in this week's coursework</li>
+        <li><strong>${Math.round(CONFIG.priorityWeights.examProximity*100)}%</strong> — exam or quiz within 2 weeks</li>
+        <li><strong>${Math.round(CONFIG.priorityWeights.homeworkProximity*100)}%</strong> — homework due this week</li>
       </ul>
-
-      <h3>Scheduling rules</h3>
-      <p>Sessions are placed only inside your recorded availability windows. Class meetings are blocked out automatically. Sessions are ${CONFIG.scheduling.minSessionMinutes}–${CONFIG.scheduling.maxSessionMinutes} minutes long, with ${CONFIG.scheduling.breakMinutes}-minute breaks. Your requested target was ${formatMinutes(targetMin)}.</p>
-
-      <h3>Resource matching</h3>
-      <p>Resources are matched by topic, your availability, section assignment, and modality preference. A resource is not booked — it is recommended for you to contact or visit directly.</p>
-
-      <h3>What these recommendations are not</h3>
-      <p>These suggestions are academic support tools, not official predictions of your grade or placement eligibility. Consult your instructor for personalized academic guidance.</p>
-
+      <h3>Scheduling</h3>
+      <p>Sessions placed only inside your recorded windows, with class meetings blocked. ${CONFIG.scheduling.minSessionMinutes}–${CONFIG.scheduling.maxSessionMinutes} min sessions, ${CONFIG.scheduling.breakMinutes}-min breaks. Target: ${formatMinutes(targetMin)}.</p>
+      <h3>Resources</h3>
+      <p>Matched by topic, your availability (exact time-window overlap), section, and modality. Not booked — contact directly.</p>
+      <h3>Disclaimer</h3>
+      <p>Suggestions are academic support tools, not official predictions of grade or placement eligibility. Consult your instructor for personalized guidance.</p>
       <h3>Your top priorities this week</h3>
-      <ul style="margin-left:1.2rem">
-        ${prioritizedTopics.slice(0, 5).map(t => `<li>${t.explanation}</li>`).join('')}
-      </ul>
+      <ul>${prioritizedTopics.slice(0,5).map(t => `<li>${t.explanation}</li>`).join('')}</ul>
     `;
 
     const details = el('details', { class:'explain-panel' });
-    const summary = el('summary', {}, `${icons.info} How your plan was created`);
-    summary.querySelector('svg').style.verticalAlign = 'middle';
+    const summary = el('summary', {});
+    summary.textContent = 'ℹ How your plan was created';
     details.appendChild(summary);
     details.appendChild(body);
     return details;
   }
 
+  // ── Modal helpers (called by app.js) ─────────────────────────────────────
+  /**
+   * Build modal content for a study session event.
+   * Returns { titleEl, bodyEl, footerEl }
+   */
+  function buildSessionModal(sess, completedSet, onToggle) {
+    const done = completedSet.has(sess.id);
+
+    const body = document.createDocumentFragment();
+
+    // Type bar
+    const typeBar = el('div', { class:'modal-type-bar' });
+    typeBar.appendChild(el('span', { class:'badge badge-blue' }, '📚 Study Session'));
+    if (done) typeBar.appendChild(el('span', { class:'badge badge-green' }, '✓ Completed'));
+    body.appendChild(typeBar);
+
+    const rows = [
+      ['Day',      sess.day],
+      ['Time',     `${sess.startTime} – ${sess.endTime}`],
+      ['Duration', formatMinutes(sess.durationMin)],
+      ['Topic',    sess.topic],
+      ['Activity', sess.activity],
+    ];
+    rows.forEach(([lbl, val]) => {
+      const row = el('div', { class:'modal-row' });
+      row.appendChild(el('span', { class:'ml' }, lbl));
+      row.appendChild(el('span', { class:'mv' }, val));
+      body.appendChild(row);
+    });
+
+    body.appendChild(el('div', { class:'modal-reason' }, sess.reason));
+
+    // Footer: completion checkbox
+    const footer = document.createDocumentFragment();
+    const cb = el('input', {
+      type: 'checkbox',
+      id: `modal-cb-${sess.id}`,
+      checked: done,
+      'aria-label': 'Mark session complete',
+      style: 'width:1rem;height:1rem;accent-color:var(--green);cursor:pointer',
+    });
+    cb.addEventListener('change', () => onToggle(sess.id, cb.checked));
+    const lbl = el('label', { for: `modal-cb-${sess.id}`, style:'font-size:.82rem;font-weight:600;cursor:pointer;margin:0' },
+      done ? 'Marked complete — uncheck to undo' : 'Mark this session complete'
+    );
+    footer.appendChild(cb);
+    footer.appendChild(lbl);
+
+    return { title: `${sess.topic} — ${sess.day}`, body, footer };
+  }
+
+  /**
+   * Build modal content for a deadline/assignment event.
+   */
+  function buildDeadlineModal(assignment) {
+    const body = document.createDocumentFragment();
+
+    const typeClass = { Exam:'badge-red', Quiz:'badge-amber', Homework:'badge-blue', Practice:'badge-green' }[assignment.type] || 'badge-gray';
+    const typeBar = el('div', { class:'modal-type-bar' });
+    typeBar.appendChild(el('span', { class:`badge ${typeClass}` }, assignment.type));
+    body.appendChild(typeBar);
+
+    const rows = [
+      ['Course',    assignment.course],
+      ['Due date',  formatDate(assignment.dueDate)],
+      ['Topic',     assignment.topic],
+      ['Points',    `${assignment.points} pts`],
+    ];
+    rows.forEach(([lbl, val]) => {
+      const row = el('div', { class:'modal-row' });
+      row.appendChild(el('span', { class:'ml' }, lbl));
+      row.appendChild(el('span', { class:'mv' }, val));
+      body.appendChild(row);
+    });
+
+    return { title: assignment.item, body, footer: document.createDocumentFragment() };
+  }
+
+  /**
+   * Build modal content for a resource recommendation.
+   */
+  function buildResourceModal(rec) {
+    const { resource, availFit, hasConflict, sectionFit, whySelected, availNote, conflictNote, sectionNote, scheduleNote } = rec;
+    const body = document.createDocumentFragment();
+
+    const typeBar = el('div', { class:'modal-type-bar' });
+    typeBar.appendChild(el('span', { class:'badge badge-gray' }, resource.type));
+    if (availFit === 'available') typeBar.appendChild(el('span', { class:'badge badge-green' }, '✓ Fits schedule'));
+    else if (availFit === 'on-demand') typeBar.appendChild(el('span', { class:'badge badge-blue' }, 'On demand'));
+    else typeBar.appendChild(el('span', { class:'badge badge-amber' }, 'Time conflict'));
+    typeBar.appendChild(el('span', { class:`badge ${resource.modality === 'Online' ? 'badge-blue' : 'badge-gray'}` }, resource.modality));
+    body.appendChild(typeBar);
+
+    body.appendChild(el('div', { class:'modal-row', style:'margin-bottom:.5rem' },
+      el('span', { class:'ml' }, 'Why recommended'),
+      el('span', { class:'mv' }, whySelected)
+    ));
+
+    const rows = [
+      ['Topics',    resource.topics.includes('All') ? 'All math topics' : resource.topics.join(', ')],
+      ['Schedule',  scheduleNote],
+      ['Location',  resource.location],
+    ];
+    rows.forEach(([lbl, val]) => {
+      const row = el('div', { class:'modal-row' });
+      row.appendChild(el('span', { class:'ml' }, lbl));
+      row.appendChild(el('span', { class:'mv' }, val));
+      body.appendChild(row);
+    });
+
+    body.appendChild(el('div', { class:'modal-row' },
+      el('span', { class:'ml' }, 'Your availability'),
+      el('span', { class:'mv' }, availNote)
+    ));
+
+    if (conflictNote) {
+      body.appendChild(el('div', { class:'modal-reason', style:'border-left-color:var(--amber)' }, `⚠ ${conflictNote}`));
+    }
+    if (sectionNote) {
+      body.appendChild(el('div', { class:'modal-reason', style:'border-left-color:var(--amber)' }, `⚠ ${sectionNote}`));
+    }
+
+    body.appendChild(el('div', { class:'modal-reason' }, resource.description));
+    body.appendChild(el('p', { style:'font-size:.7rem;color:var(--muted);font-style:italic;margin-top:.6rem' },
+      'Schedule information is from the dataset only. No appointment is booked through this tool.'
+    ));
+
+    return { title: resource.name, body, footer: document.createDocumentFragment() };
+  }
+
   return {
-    icons,
+    el,
+    formatDate,
+    formatDateShort,
+    formatMinutes,
     renderStudentSelector,
     renderStudentProfile,
-    renderAcademicReadiness,
+    renderNextSteps,
     renderWeekLabel,
-    renderWeeklyCalendar,
-    renderSessionList,
+    renderMonthCalendar,
+    renderIntegratedCalendar, // alias → renderMonthCalendar
+    renderAcademicReadiness,
     renderDeadlines,
     renderResources,
     renderProgressSummary,
     renderExplainPanel,
-    formatMinutes,
-    formatDate,
-    el,
+    buildSessionModal,
+    buildDeadlineModal,
+    buildResourceModal,
   };
 })();
