@@ -1,0 +1,10 @@
+course,section,day,start,end,location
+MATH 136,01,Monday,09:00,10:15,Room B214
+MATH 136,01,Wednesday,09:00,10:15,Room B214
+MATH 036,01,Monday,10:30,11:20,Room B214
+MATH 036,01,Wednesday,10:30,11:20,Room B214
+MATH 136,40,Tuesday,18:00,19:15,Room C110
+MATH 136,40,Thursday,18:00,19:15,Room C110
+MATH 036,40,Tuesday,19:30,20:20,Room C110
+MATH 036,40,Thursday,19:30,20:20,Room C110
+MATH 136,OL1,Any,,,"Online, self-paced weekly modules"

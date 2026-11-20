@@ -1,0 +1,6 @@
+student_id,first_name,program,math_course,support_course,work_hours_per_week,modality
+S1001,Maya,Nursing (AS),MATH 136 College Algebra,MATH 036 Algebra Support,25,In person
+S1002,Devon,Business Administration (AAS),MATH 136 College Algebra,MATH 036 Algebra Support,32,Hybrid
+S1003,Lena,Software Development (AAS),MATH 136 College Algebra,MATH 036 Algebra Support,10,In person
+S1004,Marcus,Criminal Justice (AAS),MATH 136 College Algebra,MATH 036 Algebra Support,0,Online
+S1005,Priya,Biotechnology (AS),MATH 136 College Algebra,MATH 036 Algebra Support,18,In person
